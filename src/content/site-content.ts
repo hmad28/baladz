@@ -50,6 +50,16 @@ export interface AlurPsbStep {
   keterangan: string;
 }
 
+export interface PopupSettings {
+  aktif: boolean;
+  judul: string;
+  subjudul: string;
+  gambarPoster: string;
+  teksCta: string;
+  linkCta: string;
+  teksTutup: string;
+}
+
 export interface BaladzSiteContent {
   // 1. Info Profil Lembaga & Pengumuman Utama
   lembaga: {
@@ -109,6 +119,9 @@ export interface BaladzSiteContent {
       twitter: string;
     };
   };
+
+  // 7. Pengaturan Popup Pengumuman (Muncul di 3 Halaman)
+  popup: PopupSettings;
 }
 
 export const defaultSiteContent: BaladzSiteContent = {
@@ -382,5 +395,15 @@ export const defaultSiteContent: BaladzSiteContent = {
       youtube: "https://www.youtube.com/@baladilhuffaadz",
       twitter: "https://twitter.com/baladz_id",
     },
+  },
+
+  popup: {
+    aktif: true,
+    judul: "Penerimaan Santri Baru TA 2027/2028 Telah Dibuka!",
+    subjudul: "Membina generasi berkarakter Qur'ani dengan bimbingan Asatidzah bersanad 30 Juz. Kuota sangat terbatas hanya 13 santri.",
+    gambarPoster: "/images/baladz/raw-PAUDQ-1.jpg",
+    teksCta: "Daftar Sekarang via WhatsApp",
+    linkCta: "https://wa.me/6288222822233?text=Assalamu%27alaikum%20Panitia%20PSB%20Baladz%2C%20saya%20ingin%20mendaftar%20santri%20baru.",
+    teksTutup: "Lanjutkan ke Website",
   },
 };

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   Calendar,
@@ -36,6 +36,18 @@ export function PublicSite() {
   // Tab utama (Sesuai 3 pilar Baladz: Beranda / Kabar Baladz / Kajian)
   const [activeTab, setActiveTab] = useState<"beranda" | "kabar" | "kajian">("beranda");
 
+  // Popup state: muncul setiap orang mengunjungi/berpindah ke 3 halaman (bukan sesi)
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  useEffect(() => {
+    if (content.popup && content.popup.aktif) {
+      const timer = setTimeout(() => {
+        setIsPopupOpen(true);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, content.popup]);
+
   // Mobile menu open/close
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -62,9 +74,29 @@ export function PublicSite() {
   // Jenjang kalkulator aktif
   const currentCalcJenjang = content.jenjang.find((j) => j.id === selectedJenjangId) || content.jenjang[0];
 
-  // Submit form pendaftaran online ke WhatsApp resmi
-  const handleFormSubmit = (e: React.FormEvent) => {
+  // Submit form pendaftaran online ke Neon DB & WhatsApp resmi
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Simpan ke database Neon PostgreSQL
+    try {
+      await fetch("/api/pendaftar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama_santri: formNamaSantri,
+          tgl_lahir_usia: formTglLahir,
+          jenjang: registerJenjang,
+          nama_wali: formNamaWali,
+          no_wa: formNoWa,
+          alamat: formAlamat,
+        }),
+      });
+    } catch (err) {
+      console.warn("Gagal simpan ke DB pendaftar:", err);
+    }
+
+    // 2. Buka WhatsApp dengan pesan rapi ke panitia PSB
     const pesan = `*PENDAFTARAN SANTRI BARU BALADZ ${content.psb.tahunAjaran}*%0A%0A`
       + `*Nama Calon Santri:* ${encodeURIComponent(formNamaSantri)}%0A`
       + `*Tanggal Lahir / Usia:* ${encodeURIComponent(formTglLahir)}%0A`
@@ -1252,6 +1284,69 @@ export function PublicSite() {
               >
                 Tutup Bacaan
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. POPUP PENGUMUMAN (Muncul di setiap halaman/tab, bisa di-close) */}
+      {isPopupOpen && content.popup && content.popup.aktif && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-stone-200 relative animate-in fade-in zoom-in-95 duration-200">
+            {/* Tombol Close X */}
+            <button
+              onClick={() => setIsPopupOpen(false)}
+              className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Tutup Pengumuman"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Poster Banner */}
+            {content.popup.gambarPoster && (
+              <div className="relative h-52 w-full bg-stone-100">
+                <Image
+                  src={content.popup.gambarPoster}
+                  alt={content.popup.judul}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-3 left-4 right-4">
+                  <span className="inline-block px-2.5 py-1 rounded bg-[#D97706] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
+                    Pengumuman Baladz
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Konten Popup */}
+            <div className="p-6 text-center space-y-3">
+              <h3 className="font-serif font-bold text-xl text-[#0F4C3A] leading-snug">
+                {content.popup.judul}
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                {content.popup.subjudul}
+              </p>
+
+              <div className="pt-3 space-y-2">
+                <a
+                  href={content.popup.linkCta}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setIsPopupOpen(false)}
+                  className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 px-4 rounded-xl font-bold text-xs sm:text-sm shadow flex items-center justify-center gap-2 transition-transform hover:scale-[1.01]"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{content.popup.teksCta}</span>
+                </a>
+                <button
+                  onClick={() => setIsPopupOpen(false)}
+                  className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
+                >
+                  {content.popup.teksTutup || "Lanjutkan ke Website"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
