@@ -57,7 +57,7 @@ function Important({ children }: { children: ReactNode }) {
 
 export function RegistrationView() {
   return (
-    <main className="mx-auto w-full max-w-[920px] px-5 pb-16 pt-6 text-left text-[15px] leading-[1.55] text-baladz-text md:px-4 md:pt-5 md:text-[14px]">
+    <section className="mx-auto w-full max-w-[920px] px-5 pb-16 pt-6 text-left text-[15px] leading-[1.55] text-baladz-text md:px-4 md:pt-5 md:text-[14px]">
       <h1 className="mb-1.5 text-center text-[20px] font-extrabold leading-tight text-baladz-text">
         Baladil Huffaadz (Baladz) membuka pendaftaran santri/siswa baru TA
         2027/2028
@@ -312,6 +312,6 @@ export function RegistrationView() {
           </p>
         </Important>
       </div>
-    </main>
+    </section>
   );
 }

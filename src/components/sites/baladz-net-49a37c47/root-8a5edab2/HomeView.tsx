@@ -40,7 +40,7 @@ function VisualPanel({ artClass }: VisualPanelProps) {
 
 export function HomeView() {
   return (
-    <main className="mx-auto w-full max-w-[1160px] px-4 pb-8 pt-10 sm:px-6 lg:px-0">
+    <section className="mx-auto w-full max-w-[1160px] px-4 pb-8 pt-6 sm:px-6 lg:px-0">
       <section className="grid grid-cols-1 items-start gap-5 min-[761px]:grid-cols-2 min-[761px]:gap-[18px]">
         <div className="flex min-h-full flex-col justify-center text-center text-[#5e616b]">
           <h1 className="mx-auto max-w-[540px] text-[22px] font-extrabold leading-[1.15] tracking-[-0.02em] text-[#555862]">
@@ -88,6 +88,6 @@ export function HomeView() {
           </section>
         ))}
       </div>
-    </main>
+    </section>
   );
 }
