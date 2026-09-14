@@ -4,7 +4,7 @@
   "private": true,
   "description": "Website resmi Baladz",
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",
