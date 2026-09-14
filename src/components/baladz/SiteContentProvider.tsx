@@ -28,6 +28,30 @@ interface SiteContentContextValue {
 
 const SiteContentContext = createContext<SiteContentContextValue | null>(null);
 
+function mergeSiteContent(saved: Partial<BaladzSiteContent> | null | undefined): BaladzSiteContent {
+  if (!saved) return defaultSiteContent;
+  return {
+    ...defaultSiteContent,
+    ...saved,
+    popup: {
+      ...defaultSiteContent.popup,
+      ...(saved.popup || {}),
+    },
+    lembaga: {
+      ...defaultSiteContent.lembaga,
+      ...(saved.lembaga || {}),
+    },
+    psb: {
+      ...defaultSiteContent.psb,
+      ...(saved.psb || {}),
+    },
+    kontak: {
+      ...defaultSiteContent.kontak,
+      ...(saved.kontak || {}),
+    },
+  };
+}
+
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const [content, setContent] = useState<BaladzSiteContent>(defaultSiteContent);
   const [draft, setDraft] = useState<BaladzSiteContent>(defaultSiteContent);
@@ -44,10 +68,11 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       try {
         const stored = window.localStorage.getItem(storageKey);
         if (stored) {
-          const parsed = JSON.parse(stored) as BaladzSiteContent;
+          const parsed = JSON.parse(stored) as Partial<BaladzSiteContent>;
           if (isMounted) {
-            setContent(parsed);
-            setDraft(parsed);
+            const merged = mergeSiteContent(parsed);
+            setContent(merged);
+            setDraft(merged);
           }
         }
       } catch {
@@ -59,12 +84,15 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
         const res = await fetch("/api/content", { cache: "no-store" });
         if (res.ok) {
           const json = await res.json();
-          if (json.success && json.data && isMounted) {
+          if (isMounted) {
             setIsDbConnected(true);
-            setContent(json.data);
-            setDraft(json.data);
-            window.localStorage.setItem(storageKey, JSON.stringify(json.data));
-            return;
+            if (json.data) {
+              const merged = mergeSiteContent(json.data);
+              setContent(merged);
+              setDraft(merged);
+              window.localStorage.setItem(storageKey, JSON.stringify(merged));
+              return;
+            }
           }
         }
       } catch (err) {

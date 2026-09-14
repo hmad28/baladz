@@ -57,8 +57,22 @@ export interface PopupSettings {
   judul?: string;
   subjudul?: string;
   teksCta?: string;
+  nomorWaCta?: string;
+  pesanWaCta?: string;
   linkCta?: string;
   teksTutup?: string;
+}
+
+export function resolvePopupCtaUrl(popup?: PopupSettings, defaultWa: string = "088222822233"): string {
+  if (!popup) return `https://wa.me/62${defaultWa.replace(/^0/, "")}`;
+  if (popup.linkCta && (popup.linkCta.startsWith("http://") || popup.linkCta.startsWith("https://"))) {
+    return popup.linkCta;
+  }
+  const rawWa = popup.nomorWaCta || defaultWa;
+  const cleanWa = rawWa.replace(/[^0-9]/g, "");
+  const formattedWa = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : cleanWa;
+  const pesan = popup.pesanWaCta || "Assalamu'alaikum Panitia PSB Baladz, saya ingin menanyakan informasi pendaftaran santri baru.";
+  return `https://wa.me/${formattedWa}?text=${encodeURIComponent(pesan)}`;
 }
 
 export interface BaladzSiteContent {
@@ -405,6 +419,8 @@ export const defaultSiteContent: BaladzSiteContent = {
     subjudul: "Membina generasi berkarakter Qur'ani dengan bimbingan Asatidzah bersanad 30 Juz. Kuota sangat terbatas hanya 13 santri.",
     gambarPoster: "/images/baladz/raw-PAUDQ-1.jpg",
     teksCta: "Daftar Sekarang via WhatsApp",
+    nomorWaCta: "088222822233",
+    pesanWaCta: "Assalamu'alaikum Panitia PSB Baladz, saya ingin menanyakan pendaftaran santri baru.",
     linkCta: "https://wa.me/6288222822233?text=Assalamu%27alaikum%20Panitia%20PSB%20Baladz%2C%20saya%20ingin%20mendaftar%20santri%20baru.",
     teksTutup: "Lanjutkan ke Website",
   },

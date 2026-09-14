@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   Bell,
   BookOpen,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   Layout,
   MessageCircle,
   Newspaper,
+  Pencil,
   Phone,
   Plus,
   RefreshCw,
@@ -25,7 +27,7 @@ import {
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
 import { UploadButton } from "@/lib/uploadthing";
-import type { BeritaKabar, KajianArtikel } from "@/content/site-content";
+import { type BeritaKabar, type KajianArtikel } from "@/content/site-content";
 
 interface PendaftarRow {
   id: number;
@@ -40,7 +42,7 @@ interface PendaftarRow {
 }
 
 export function AdminDashboard() {
-  const { draft, setDraft, save, reset, savedAt, isSaving, isDbConnected } = useSiteContent();
+  const { draft, setDraft, save, reset, savedAt, isSaving } = useSiteContent();
 
   const [activeMenu, setActiveMenu] = useState<"popup" | "pendaftar" | "psb" | "jenjang" | "kabar" | "kajian" | "kontak">("popup");
 
@@ -51,8 +53,13 @@ export function AdminDashboard() {
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // View mode untuk Kabar: null (tampilan list), "new" (halaman tambah baru), number (halaman edit detail)
+  const [kabarView, setKabarView] = useState<number | "new" | null>(null);
+
+  // View mode untuk Kajian: null (tampilan list), "new" (halaman tambah baru), number (halaman edit detail)
+  const [kajianView, setKajianView] = useState<number | "new" | null>(null);
+
   // State tambah kabar baru
-  const [showAddKabar, setShowAddKabar] = useState(false);
   const [newKabarJudul, setNewKabarJudul] = useState("");
   const [newKabarKategori, setNewKabarKategori] = useState("Kegiatan Santri");
   const [newKabarRingkasan, setNewKabarRingkasan] = useState("");
@@ -60,7 +67,6 @@ export function AdminDashboard() {
   const [newKabarGambar, setNewKabarGambar] = useState("/images/baladz/gallery-outdoor.jpg");
 
   // State tambah kajian baru
-  const [showAddKajian, setShowAddKajian] = useState(false);
   const [newKajianJudul, setNewKajianJudul] = useState("");
   const [newKajianKategori, setNewKajianKategori] = useState("Parenting Qur'ani");
   const [newKajianPenulis, setNewKajianPenulis] = useState("Asatidzah Baladz");
@@ -154,7 +160,7 @@ export function AdminDashboard() {
       penulis: "Humas Baladz",
     };
     setDraft({ ...draft, kabar: [item, ...draft.kabar] });
-    setShowAddKabar(false);
+    setKabarView(null);
     setNewKabarJudul("");
     setNewKabarRingkasan("");
     setNewKabarIsi("");
@@ -175,7 +181,7 @@ export function AdminDashboard() {
       tanggal: new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date()),
     };
     setDraft({ ...draft, kajian: [item, ...draft.kajian] });
-    setShowAddKajian(false);
+    setKajianView(null);
     setNewKajianJudul("");
     setNewKajianRingkasan("");
     setNewKajianIsi("");
@@ -200,21 +206,10 @@ export function AdminDashboard() {
               <Image src="/images/baladz/logo.png" alt="Baladz" fill className="object-contain" />
             </Link>
             <div className="border-l border-stone-200 pl-4">
-              <div className="flex items-center gap-2">
+              <div>
                 <h1 className="font-serif font-bold text-base sm:text-lg text-[#0F4C3A]">
                   Dashboard Pengelola Baladz
                 </h1>
-                {isDbConnected ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                    Neon DB Terhubung
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    Mode Lokal / Siap Sinkron
-                  </span>
-                )}
               </div>
               <p className="text-[11px] text-stone-500 hidden sm:block">
                 Kelola popup promosi, data pendaftar, biaya PSB, kabar, dan kajian
@@ -549,12 +544,18 @@ export function AdminDashboard() {
                           <UploadButton
                             endpoint="imageUploader"
                             onClientUploadComplete={(res) => {
-                              if (res && res[0]?.url) {
+                              const file = res?.[0];
+                              const uploadedUrl =
+                                file?.ufsUrl ||
+                                file?.url ||
+                                (file as unknown as { serverData?: { url?: string } })?.serverData?.url ||
+                                (file as unknown as { appUrl?: string })?.appUrl;
+                              if (uploadedUrl) {
                                 setDraft({
                                   ...draft,
-                                  popup: { ...draft.popup, gambarPoster: res[0].url },
+                                  popup: { ...draft.popup, gambarPoster: uploadedUrl },
                                 });
-                                showToast("Poster berhasil di-upload!");
+                                showToast("Poster berhasil di-upload! Jangan lupa klik 'Simpan Perubahan' di kanan atas.");
                               }
                             }}
                             onUploadError={(error: Error) => {
@@ -562,6 +563,40 @@ export function AdminDashboard() {
                             }}
                           />
                         </div>
+
+                        {/* Thumbnail Status Preview */}
+                        {draft.popup.gambarPoster && (
+                          <div className="flex items-center gap-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={draft.popup.gambarPoster}
+                              alt="Poster Terpasang"
+                              className="w-12 h-12 object-cover rounded-lg border border-emerald-300 shadow-2xs bg-white shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[11px] font-bold text-emerald-900 flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Poster Terpasang</span>
+                              </div>
+                              <div className="text-[10px] text-stone-600 font-mono truncate" title={draft.popup.gambarPoster}>
+                                {draft.popup.gambarPoster}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDraft({
+                                  ...draft,
+                                  popup: { ...draft.popup, gambarPoster: "" },
+                                })
+                              }
+                              className="text-stone-400 hover:text-red-600 px-2 py-1 text-xs cursor-pointer"
+                              title="Hapus gambar"
+                            >
+                              ✕ Hapus
+                            </button>
+                          </div>
+                        )}
 
                         <input
                           type="text"
@@ -578,26 +613,79 @@ export function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Link Tujuan Poster */}
-                    <div>
-                      <label className="block font-semibold mb-1 text-stone-700">
-                        Link Tujuan Poster / CTA <span className="text-stone-400 font-normal text-xs">(Opsional)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={draft.popup.linkCta || ""}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            popup: { ...draft.popup, linkCta: e.target.value },
-                          })
-                        }
-                        placeholder="Contoh: https://wa.me/6288222822233 atau link formulir"
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono text-xs"
-                      />
-                      <p className="text-[11px] text-stone-500 mt-1">
-                        💡 Jika diisi, pengunjung yang mengklik poster/tombol akan langsung diarahkan ke link ini.
+                    {/* Setup WhatsApp Aksi CTA (Mudah Dipahami Tanpa Link Rumit) */}
+                    <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-3">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4 text-emerald-800" />
+                        <span className="font-bold text-stone-800 text-xs sm:text-sm">
+                          Tujuan Aksi Pengunjung (WhatsApp Panitia)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-600 leading-relaxed">
+                        Saat pengunjung mengklik poster atau tombol aksi, WhatsApp otomatis terbuka dengan nomor dan pesan awal yang sudah siap dikirim (tidak perlu repot mengetik link):
                       </p>
+
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-semibold mb-1 text-stone-700">
+                            Nomor WhatsApp Panitia / Admin
+                          </label>
+                          <input
+                            type="text"
+                            value={draft.popup.nomorWaCta || draft.kontak.whatsappUtama}
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                popup: { ...draft.popup, nomorWaCta: e.target.value },
+                              })
+                            }
+                            placeholder="Contoh: 088222822233"
+                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono text-xs bg-white"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold mb-1 text-stone-700">
+                            Pesan Awal WhatsApp (Otomatis Terisi Saat Diklik)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={
+                              draft.popup.pesanWaCta !== undefined
+                                ? draft.popup.pesanWaCta
+                                : "Assalamu'alaikum Panitia PSB Baladz, saya ingin menanyakan pendaftaran santri baru."
+                            }
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                popup: { ...draft.popup, pesanWaCta: e.target.value },
+                              })
+                            }
+                            placeholder="Contoh: Assalamu'alaikum Panitia PSB Baladz, saya ingin mendaftar..."
+                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-xs bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <details className="text-xs pt-1">
+                        <summary className="text-stone-500 hover:text-stone-800 cursor-pointer text-[11px] font-medium">
+                          Ingin gunakan link halaman website/formulir eksternal? (Opsi Lanjutan)
+                        </summary>
+                        <div className="pt-2">
+                          <input
+                            type="text"
+                            value={draft.popup.linkCta || ""}
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                popup: { ...draft.popup, linkCta: e.target.value },
+                              })
+                            }
+                            placeholder="Kosongkan jika ingin WhatsApp di atas, atau masukkan link https://..."
+                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono text-xs bg-white"
+                          />
+                        </div>
+                      </details>
                     </div>
 
                     {/* Form Teks Opsional */}
@@ -714,7 +802,7 @@ export function AdminDashboard() {
                               <img
                                 src={draft.popup.gambarPoster}
                                 alt="Poster Preview"
-                                className="w-full max-h-[320px] object-contain mx-auto"
+                                className="w-auto max-w-full h-auto max-h-[320px] object-contain mx-auto block"
                               />
                               {draft.popup.teksCta && (
                                 <div className="p-3 bg-white border-t border-stone-100">
@@ -732,11 +820,9 @@ export function AdminDashboard() {
                             </div>
                           )}
 
-                          {draft.popup.linkCta && (
-                            <div className="mt-2 text-center text-[10px] text-emerald-400 font-medium">
-                              ✓ Poster dapat diklik menuju link tujuan
-                            </div>
-                          )}
+                          <div className="mt-2 text-center text-[10px] text-emerald-400 font-medium">
+                            ✓ Klik poster/tombol membuka chat WhatsApp langsung
+                          </div>
                           {!draft.popup.teksCta && (
                             <div className="mt-2 text-center">
                               <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-white/80 text-[10px]">
@@ -754,17 +840,13 @@ export function AdminDashboard() {
                           </div>
 
                           {draft.popup.gambarPoster ? (
-                            <div className="relative h-32 w-full bg-stone-200">
-                              <Image
+                            <div className="w-full bg-stone-100 flex items-center justify-center overflow-hidden max-h-40 border-b border-stone-100">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
                                 src={draft.popup.gambarPoster}
                                 alt="Poster Preview"
-                                fill
-                                className="object-cover"
+                                className="w-auto max-w-full h-auto max-h-36 object-contain mx-auto"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                              <span className="absolute bottom-2 left-2 text-[9px] bg-[#D97706] text-white px-2 py-0.5 rounded font-bold uppercase">
-                                Pengumuman
-                              </span>
                             </div>
                           ) : (
                             <div className="h-16 bg-emerald-800 text-white flex items-center justify-center text-xs">
@@ -1154,320 +1236,702 @@ export function AdminDashboard() {
             )}
 
             {/* ======================================================= */}
-            {/* 5. KABAR BALADZ                                         */}
+            {/* 5. KABAR BALADZ (LIST VIEW + DEDICATED CREATE/EDIT VIEW)*/}
             {/* ======================================================= */}
             {activeMenu === "kabar" && (
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Warta Lembaga</span>
-                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
-                      Kabar dari Baladz ({draft.kabar.length})
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => setShowAddKabar(!showAddKabar)}
-                    className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Tambah Kabar</span>
-                  </button>
-                </div>
-
-                {/* Form Tambah Kabar */}
-                {showAddKabar && (
-                  <form onSubmit={handleCreateKabar} className="p-5 border border-emerald-200 rounded-xl bg-emerald-50/50 space-y-3 text-xs sm:text-sm">
-                    <h3 className="font-bold text-emerald-950">Tulis Kabar Baru</h3>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-semibold text-stone-700 mb-1">Judul Kabar *</label>
-                        <input
-                          type="text"
-                          required
-                          value={newKabarJudul}
-                          onChange={(e) => setNewKabarJudul(e.target.value)}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-stone-700 mb-1">Kategori *</label>
-                        <input
-                          type="text"
-                          value={newKabarKategori}
-                          onChange={(e) => setNewKabarKategori(e.target.value)}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block font-semibold text-stone-700 mb-1">Link Gambar / Foto Berita</label>
-                        <input
-                          type="text"
-                          value={newKabarGambar}
-                          onChange={(e) => setNewKabarGambar(e.target.value)}
-                          placeholder="Contoh: /images/baladz/gallery-outdoor.jpg"
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white font-mono text-xs"
-                        />
-                      </div>
-                    </div>
+                {/* 5A. VIEW: TAMBAH KABAR BARU (HALAMAN TERSENDIRI) */}
+                {kabarView === "new" && (
+                  <div className="space-y-5 animate-in fade-in duration-200">
                     <div>
-                      <label className="block font-semibold text-stone-700 mb-1">Ringkasan Berita *</label>
-                      <textarea
-                        rows={2}
-                        required
-                        value={newKabarRingkasan}
-                        onChange={(e) => setNewKabarRingkasan(e.target.value)}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1">Isi Lengkap (Gunakan 2x Enter untuk Paragraf Baru)</label>
-                      <textarea
-                        rows={4}
-                        value={newKabarIsi}
-                        onChange={(e) => setNewKabarIsi(e.target.value)}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2">
                       <button
                         type="button"
-                        onClick={() => setShowAddKabar(false)}
-                        className="px-3 py-1.5 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-100"
+                        onClick={() => setKabarView(null)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors cursor-pointer mb-2"
                       >
-                        Batal
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Kembali ke Daftar Kabar</span>
                       </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-1.5 bg-[#0F4C3A] text-white font-bold rounded-lg"
-                      >
-                        Simpan Kabar
-                      </button>
+                      <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A]">
+                        Tulis Kabar / Berita Baru
+                      </h2>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        Publikasikan dokumentasi kegiatan, warta, atau prestasi santri Baladz
+                      </p>
                     </div>
-                  </form>
-                )}
 
-                {/* List Kabar */}
-                <div className="space-y-4">
-                  {draft.kabar.map((item, idx) => (
-                    <div key={item.id} className="p-4 border border-stone-200 rounded-xl space-y-3 bg-stone-50/50">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-emerald-900">Kabar #{idx + 1}</span>
-                        <button
-                          onClick={() => {
-                            if (confirm("Hapus kabar ini?")) {
-                              setDraft({ ...draft, kabar: draft.kabar.filter((_, i) => i !== idx) });
-                            }
-                          }}
-                          className="text-stone-400 hover:text-red-600 p-1"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                        <div>
-                          <label className="block font-semibold text-stone-600 mb-1">Judul</label>
-                          <input
-                            type="text"
-                            value={item.judul}
-                            onChange={(e) => {
-                              const updated = [...draft.kabar];
-                              updated[idx] = { ...updated[idx], judul: e.target.value };
-                              setDraft({ ...draft, kabar: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-stone-600 mb-1">Kategori</label>
-                          <input
-                            type="text"
-                            value={item.kategori}
-                            onChange={(e) => {
-                              const updated = [...draft.kabar];
-                              updated[idx] = { ...updated[idx], kategori: e.target.value };
-                              setDraft({ ...draft, kabar: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
-                          />
-                        </div>
+                    <form onSubmit={handleCreateKabar} className="space-y-4 text-xs sm:text-sm">
+                      <div className="grid sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-600 mb-1">Ringkasan</label>
+                          <label className="block font-semibold text-stone-700 mb-1">Judul Berita *</label>
+                          <input
+                            type="text"
+                            required
+                            value={newKabarJudul}
+                            onChange={(e) => setNewKabarJudul(e.target.value)}
+                            placeholder="Contoh: Santri Baladz Selesaikan Tasmi' 30 Juz Bil Ghoib"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Kategori Berita</label>
+                          <input
+                            type="text"
+                            value={newKabarKategori}
+                            onChange={(e) => setNewKabarKategori(e.target.value)}
+                            placeholder="Contoh: Prestasi / Kegiatan / Tahfidz"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Foto Berita (Upload / Link)</label>
+                          <div className="space-y-2">
+                            <div className="p-2.5 bg-stone-50 border border-dashed border-stone-300 rounded-xl flex items-center justify-between">
+                              <span className="text-[11px] text-stone-500">Upload gambar:</span>
+                              <UploadButton
+                                endpoint="imageUploader"
+                                onClientUploadComplete={(res) => {
+                                  const file = res?.[0];
+                                  const url = file?.ufsUrl || file?.url;
+                                  if (url) {
+                                    setNewKabarGambar(url);
+                                    showToast("Foto berita berhasil di-upload!");
+                                  }
+                                }}
+                                onUploadError={(e) => alert(`Upload error: ${e.message}`)}
+                              />
+                            </div>
+                            <input
+                              type="text"
+                              value={newKabarGambar}
+                              onChange={(e) => setNewKabarGambar(e.target.value)}
+                              placeholder="URL gambar"
+                              className="w-full px-3 py-1.5 text-xs border border-stone-300 rounded-lg font-mono bg-white"
+                            />
+                          </div>
+                        </div>
+
+                        {newKabarGambar && (
+                          <div className="sm:col-span-2 flex items-center gap-3 p-2 bg-stone-50 border border-stone-200 rounded-xl">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={newKabarGambar} alt="Preview" className="w-16 h-12 object-cover rounded-lg" />
+                            <div className="text-[11px] text-stone-600 truncate font-mono">{newKabarGambar}</div>
+                          </div>
+                        )}
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Ringkasan Singkat (Muncul di Halaman Depan) *</label>
                           <textarea
                             rows={2}
-                            value={item.ringkasan}
-                            onChange={(e) => {
-                              const updated = [...draft.kabar];
-                              updated[idx] = { ...updated[idx], ringkasan: e.target.value };
-                              setDraft({ ...draft, kabar: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
+                            required
+                            value={newKabarRingkasan}
+                            onChange={(e) => setNewKabarRingkasan(e.target.value)}
+                            placeholder="Ringkasan 1-2 kalimat..."
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">
+                            Isi Lengkap Artikel <span className="text-stone-400 font-normal text-xs">(Gunakan 2x Enter untuk pemisah paragraf)</span>
+                          </label>
+                          <textarea
+                            rows={6}
+                            value={newKabarIsi}
+                            onChange={(e) => setNewKabarIsi(e.target.value)}
+                            placeholder="Tuliskan isi berita lengkap di sini..."
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white leading-relaxed"
                           />
                         </div>
                       </div>
+
+                      <div className="flex justify-end gap-3 pt-3 border-t border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() => setKabarView(null)}
+                          className="px-4 py-2 border border-stone-300 rounded-xl font-semibold text-stone-600 hover:bg-stone-100 cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#0c3f30] text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                        >
+                          Simpan Berita Baru
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* 5B. VIEW: EDIT DETAIL KABAR (HALAMAN TERSENDIRI) */}
+                {typeof kabarView === "number" && draft.kabar[kabarView] && (
+                  <div className="space-y-5 animate-in fade-in duration-200">
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setKabarView(null)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors cursor-pointer mb-2"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Kembali ke Daftar Kabar</span>
+                      </button>
+                      <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A]">
+                        Edit Berita: {draft.kabar[kabarView].judul}
+                      </h2>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="space-y-4 text-xs sm:text-sm">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Judul Berita</label>
+                          <input
+                            type="text"
+                            value={draft.kabar[kabarView].judul}
+                            onChange={(e) => {
+                              const updated = [...draft.kabar];
+                              updated[kabarView] = { ...updated[kabarView], judul: e.target.value };
+                              setDraft({ ...draft, kabar: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Kategori</label>
+                          <input
+                            type="text"
+                            value={draft.kabar[kabarView].kategori}
+                            onChange={(e) => {
+                              const updated = [...draft.kabar];
+                              updated[kabarView] = { ...updated[kabarView], kategori: e.target.value };
+                              setDraft({ ...draft, kabar: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Foto Berita</label>
+                          <div className="space-y-2">
+                            <div className="p-2.5 bg-stone-50 border border-dashed border-stone-300 rounded-xl flex items-center justify-between">
+                              <span className="text-[11px] text-stone-500">Ganti foto:</span>
+                              <UploadButton
+                                endpoint="imageUploader"
+                                onClientUploadComplete={(res) => {
+                                  const file = res?.[0];
+                                  const url = file?.ufsUrl || file?.url;
+                                  if (url) {
+                                    const updated = [...draft.kabar];
+                                    updated[kabarView] = { ...updated[kabarView], gambar: url };
+                                    setDraft({ ...draft, kabar: updated });
+                                    showToast("Foto berita diperbarui!");
+                                  }
+                                }}
+                                onUploadError={(e) => alert(`Upload error: ${e.message}`)}
+                              />
+                            </div>
+                            <input
+                              type="text"
+                              value={draft.kabar[kabarView].gambar}
+                              onChange={(e) => {
+                                const updated = [...draft.kabar];
+                                updated[kabarView] = { ...updated[kabarView], gambar: e.target.value };
+                                setDraft({ ...draft, kabar: updated });
+                              }}
+                              className="w-full px-3 py-1.5 text-xs border border-stone-300 rounded-lg font-mono bg-white"
+                            />
+                          </div>
+                        </div>
+
+                        {draft.kabar[kabarView].gambar && (
+                          <div className="sm:col-span-2 flex items-center gap-3 p-2 bg-stone-50 border border-stone-200 rounded-xl">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={draft.kabar[kabarView].gambar} alt="Preview" className="w-16 h-12 object-cover rounded-lg" />
+                            <div className="text-[11px] text-stone-600 truncate font-mono">{draft.kabar[kabarView].gambar}</div>
+                          </div>
+                        )}
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Ringkasan</label>
+                          <textarea
+                            rows={2}
+                            value={draft.kabar[kabarView].ringkasan}
+                            onChange={(e) => {
+                              const updated = [...draft.kabar];
+                              updated[kabarView] = { ...updated[kabarView], ringkasan: e.target.value };
+                              setDraft({ ...draft, kabar: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Isi Lengkap (Paragraf)</label>
+                          <textarea
+                            rows={8}
+                            value={draft.kabar[kabarView].isiLengkap.join("\n\n")}
+                            onChange={(e) => {
+                              const updated = [...draft.kabar];
+                              updated[kabarView] = {
+                                ...updated[kabarView],
+                                isiLengkap: e.target.value.split("\n\n").filter(Boolean),
+                              };
+                              setDraft({ ...draft, kabar: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white leading-relaxed font-sans"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Hapus berita ini secara permanen?")) {
+                              setDraft({ ...draft, kabar: draft.kabar.filter((_, i) => i !== kabarView) });
+                              setKabarView(null);
+                              showToast("Berita telah dihapus.");
+                            }
+                          }}
+                          className="px-3.5 py-2 text-red-600 hover:bg-red-50 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Hapus Berita Ini</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setKabarView(null);
+                            showToast("Perubahan berita tersimpan!");
+                          }}
+                          className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#0c3f30] text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                        >
+                          Selesai & Simpan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5C. VIEW: LIST TABEL/CARD KABAR (DEFAULT VIEW) */}
+                {kabarView === null && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Warta Lembaga</span>
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
+                          Kabar dari Baladz ({draft.kabar.length})
+                        </h2>
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          Daftar dokumentasi kegiatan, warta, dan artikel berita resmi Baladz
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setKabarView("new")}
+                        className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Tulis Kabar Baru</span>
+                      </button>
+                    </div>
+
+                    {draft.kabar.length === 0 ? (
+                      <div className="p-12 text-center border-2 border-dashed border-stone-200 rounded-2xl">
+                        <Newspaper className="w-10 h-10 text-stone-400 mx-auto mb-2" />
+                        <h3 className="font-bold text-stone-700 text-sm">Belum ada kabar berita</h3>
+                        <p className="text-xs text-stone-400 mt-1">
+                          Klik tombol &quot;Tulis Kabar Baru&quot; untuk mempublikasikan warta pertama.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-stone-200 border border-stone-200 rounded-2xl overflow-hidden bg-white">
+                        {draft.kabar.map((item, idx) => (
+                          <div
+                            key={item.id}
+                            className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50/80 transition-colors"
+                          >
+                            <div className="flex items-start gap-3.5 min-w-0">
+                              {/* Thumbnail */}
+                              <div className="w-20 h-14 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-stone-200 relative">
+                                {item.gambar ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img src={item.gambar} alt={item.judul} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-stone-400">
+                                    <Newspaper className="w-5 h-5" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                                    {item.kategori}
+                                  </span>
+                                  <span className="text-[11px] text-stone-400">{item.tanggal}</span>
+                                </div>
+                                <h4
+                                  onClick={() => setKabarView(idx)}
+                                  className="font-bold text-stone-900 text-sm hover:text-emerald-800 cursor-pointer line-clamp-1"
+                                >
+                                  {item.judul}
+                                </h4>
+                                <p className="text-xs text-stone-500 line-clamp-1 mt-0.5">
+                                  {item.ringkasan}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                              <button
+                                type="button"
+                                onClick={() => setKabarView(idx)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>Edit Detail</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Hapus kabar "${item.judul}"?`)) {
+                                    setDraft({ ...draft, kabar: draft.kabar.filter((_, i) => i !== idx) });
+                                    showToast("Berita telah dihapus.");
+                                  }
+                                }}
+                                className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                                title="Hapus Berita"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
             {/* ======================================================= */}
-            {/* 6. KAJIAN ISLAMI                                        */}
+            {/* 6. KAJIAN ISLAMI (LIST VIEW + DEDICATED CREATE/EDIT VIEW)*/}
             {/* ======================================================= */}
             {activeMenu === "kajian" && (
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Edukasi Islami</span>
-                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
-                      Daftar Artikel Kajian ({draft.kajian.length})
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => setShowAddKajian(!showAddKajian)}
-                    className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Tambah Kajian</span>
-                  </button>
-                </div>
-
-                {/* Form Tambah Kajian */}
-                {showAddKajian && (
-                  <form onSubmit={handleCreateKajian} className="p-5 border border-emerald-200 rounded-xl bg-emerald-50/50 space-y-3 text-xs sm:text-sm">
-                    <h3 className="font-bold text-emerald-950">Tulis Artikel Kajian Baru</h3>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-semibold text-stone-700 mb-1">Judul Artikel *</label>
-                        <input
-                          type="text"
-                          required
-                          value={newKajianJudul}
-                          onChange={(e) => setNewKajianJudul(e.target.value)}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-stone-700 mb-1">Kategori *</label>
-                        <input
-                          type="text"
-                          value={newKajianKategori}
-                          onChange={(e) => setNewKajianKategori(e.target.value)}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block font-semibold text-stone-700 mb-1">Nama Penulis *</label>
-                        <input
-                          type="text"
-                          value={newKajianPenulis}
-                          onChange={(e) => setNewKajianPenulis(e.target.value)}
-                          placeholder="Contoh: Asatidzah Baladz / Ustadzah Asti"
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                        />
-                      </div>
-                    </div>
+                {/* 6A. VIEW: TAMBAH KAJIAN BARU (HALAMAN TERSENDIRI) */}
+                {kajianView === "new" && (
+                  <div className="space-y-5 animate-in fade-in duration-200">
                     <div>
-                      <label className="block font-semibold text-stone-700 mb-1">Ringkasan Artikel *</label>
-                      <textarea
-                        rows={2}
-                        required
-                        value={newKajianRingkasan}
-                        onChange={(e) => setNewKajianRingkasan(e.target.value)}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1">Isi Lengkap Artikel (2x Enter untuk Paragraf Baru)</label>
-                      <textarea
-                        rows={4}
-                        value={newKajianIsi}
-                        onChange={(e) => setNewKajianIsi(e.target.value)}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2">
                       <button
                         type="button"
-                        onClick={() => setShowAddKajian(false)}
-                        className="px-3 py-1.5 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-100"
+                        onClick={() => setKajianView(null)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors cursor-pointer mb-2"
                       >
-                        Batal
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Kembali ke Daftar Kajian</span>
                       </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-1.5 bg-[#0F4C3A] text-white font-bold rounded-lg"
-                      >
-                        Simpan Kajian
-                      </button>
+                      <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A]">
+                        Tulis Artikel Kajian Baru
+                      </h2>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        Bagikan wawasan parenting Qur&apos;ani, adab penuntut ilmu, atau fikih keluarga
+                      </p>
                     </div>
-                  </form>
-                )}
 
-                {/* List Kajian */}
-                <div className="space-y-4">
-                  {draft.kajian.map((item, idx) => (
-                    <div key={item.id} className="p-4 border border-stone-200 rounded-xl space-y-3 bg-stone-50/50">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-emerald-900">Kajian #{idx + 1}</span>
-                        <button
-                          onClick={() => {
-                            if (confirm("Hapus artikel kajian ini?")) {
-                              setDraft({ ...draft, kajian: draft.kajian.filter((_, i) => i !== idx) });
-                            }
-                          }}
-                          className="text-stone-400 hover:text-red-600 p-1"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                        <div>
-                          <label className="block font-semibold text-stone-600 mb-1">Judul</label>
-                          <input
-                            type="text"
-                            value={item.judul}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[idx] = { ...updated[idx], judul: e.target.value };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-stone-600 mb-1">Kategori</label>
-                          <input
-                            type="text"
-                            value={item.kategori}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[idx] = { ...updated[idx], kategori: e.target.value };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
-                          />
-                        </div>
+                    <form onSubmit={handleCreateKajian} className="space-y-4 text-xs sm:text-sm">
+                      <div className="grid sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-600 mb-1">Ringkasan</label>
+                          <label className="block font-semibold text-stone-700 mb-1">Judul Artikel Kajian *</label>
+                          <input
+                            type="text"
+                            required
+                            value={newKajianJudul}
+                            onChange={(e) => setNewKajianJudul(e.target.value)}
+                            placeholder="Contoh: Menumbuhkan Cinta Al-Qur'an pada Anak Sejak Dini"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Kategori Kajian</label>
+                          <input
+                            type="text"
+                            value={newKajianKategori}
+                            onChange={(e) => setNewKajianKategori(e.target.value)}
+                            placeholder="Contoh: Parenting Qur'ani / Adab Santri"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Nama Penulis / Pemateri</label>
+                          <input
+                            type="text"
+                            value={newKajianPenulis}
+                            onChange={(e) => setNewKajianPenulis(e.target.value)}
+                            placeholder="Contoh: Asatidzah Baladz / Ustadz Rahmat"
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Ringkasan Artikel *</label>
                           <textarea
                             rows={2}
-                            value={item.ringkasan}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[idx] = { ...updated[idx], ringkasan: e.target.value };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
+                            required
+                            value={newKajianRingkasan}
+                            onChange={(e) => setNewKajianRingkasan(e.target.value)}
+                            placeholder="Ringkasan inti sari kajian..."
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">
+                            Isi Lengkap Kajian <span className="text-stone-400 font-normal text-xs">(Gunakan 2x Enter untuk pemisah paragraf)</span>
+                          </label>
+                          <textarea
+                            rows={8}
+                            value={newKajianIsi}
+                            onChange={(e) => setNewKajianIsi(e.target.value)}
+                            placeholder="Tuliskan isi lengkap artikel kajian di sini..."
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white leading-relaxed"
                           />
                         </div>
                       </div>
+
+                      <div className="flex justify-end gap-3 pt-3 border-t border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() => setKajianView(null)}
+                          className="px-4 py-2 border border-stone-300 rounded-xl font-semibold text-stone-600 hover:bg-stone-100 cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#0c3f30] text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                        >
+                          Simpan Artikel Kajian
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* 6B. VIEW: EDIT DETAIL KAJIAN (HALAMAN TERSENDIRI) */}
+                {typeof kajianView === "number" && draft.kajian[kajianView] && (
+                  <div className="space-y-5 animate-in fade-in duration-200">
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setKajianView(null)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors cursor-pointer mb-2"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Kembali ke Daftar Kajian</span>
+                      </button>
+                      <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A]">
+                        Edit Kajian: {draft.kajian[kajianView].judul}
+                      </h2>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="space-y-4 text-xs sm:text-sm">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Judul Artikel</label>
+                          <input
+                            type="text"
+                            value={draft.kajian[kajianView].judul}
+                            onChange={(e) => {
+                              const updated = [...draft.kajian];
+                              updated[kajianView] = { ...updated[kajianView], judul: e.target.value };
+                              setDraft({ ...draft, kajian: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Kategori</label>
+                          <input
+                            type="text"
+                            value={draft.kajian[kajianView].kategori}
+                            onChange={(e) => {
+                              const updated = [...draft.kajian];
+                              updated[kajianView] = { ...updated[kajianView], kategori: e.target.value };
+                              setDraft({ ...draft, kajian: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-stone-700 mb-1">Nama Penulis / Pemateri</label>
+                          <input
+                            type="text"
+                            value={draft.kajian[kajianView].penulis}
+                            onChange={(e) => {
+                              const updated = [...draft.kajian];
+                              updated[kajianView] = { ...updated[kajianView], penulis: e.target.value };
+                              setDraft({ ...draft, kajian: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Ringkasan</label>
+                          <textarea
+                            rows={2}
+                            value={draft.kajian[kajianView].ringkasan}
+                            onChange={(e) => {
+                              const updated = [...draft.kajian];
+                              updated[kajianView] = { ...updated[kajianView], ringkasan: e.target.value };
+                              setDraft({ ...draft, kajian: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-700 mb-1">Isi Lengkap Artikel (Paragraf)</label>
+                          <textarea
+                            rows={8}
+                            value={draft.kajian[kajianView].isiLengkap.join("\n\n")}
+                            onChange={(e) => {
+                              const updated = [...draft.kajian];
+                              updated[kajianView] = {
+                                ...updated[kajianView],
+                                isiLengkap: e.target.value.split("\n\n").filter(Boolean),
+                              };
+                              setDraft({ ...draft, kajian: updated });
+                            }}
+                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white leading-relaxed font-sans"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Hapus artikel kajian ini?")) {
+                              setDraft({ ...draft, kajian: draft.kajian.filter((_, i) => i !== kajianView) });
+                              setKajianView(null);
+                              showToast("Artikel kajian telah dihapus.");
+                            }
+                          }}
+                          className="px-3.5 py-2 text-red-600 hover:bg-red-50 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Hapus Kajian Ini</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setKajianView(null);
+                            showToast("Perubahan kajian tersimpan!");
+                          }}
+                          className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#0c3f30] text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                        >
+                          Selesai & Simpan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6C. VIEW: LIST TABEL/CARD KAJIAN (DEFAULT VIEW) */}
+                {kajianView === null && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Edukasi Islami</span>
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
+                          Daftar Artikel Kajian ({draft.kajian.length})
+                        </h2>
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          Kelola artikel fiqih, parenting Qur&apos;ani, dan adab untuk orang tua santri
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setKajianView("new")}
+                        className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Tulis Kajian Baru</span>
+                      </button>
+                    </div>
+
+                    {draft.kajian.length === 0 ? (
+                      <div className="p-12 text-center border-2 border-dashed border-stone-200 rounded-2xl">
+                        <BookOpen className="w-10 h-10 text-stone-400 mx-auto mb-2" />
+                        <h3 className="font-bold text-stone-700 text-sm">Belum ada artikel kajian</h3>
+                        <p className="text-xs text-stone-400 mt-1">
+                          Klik tombol &quot;Tulis Kajian Baru&quot; untuk menambahkan materi edukasi.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-stone-200 border border-stone-200 rounded-2xl overflow-hidden bg-white">
+                        {draft.kajian.map((item, idx) => (
+                          <div
+                            key={item.id}
+                            className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50/80 transition-colors"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                                  {item.kategori}
+                                </span>
+                                <span className="text-[11px] text-stone-400">{item.tanggal}</span>
+                                <span className="text-[11px] text-stone-500 font-medium">Oleh: {item.penulis}</span>
+                              </div>
+                              <h4
+                                onClick={() => setKajianView(idx)}
+                                className="font-bold text-stone-900 text-sm hover:text-emerald-800 cursor-pointer line-clamp-1"
+                              >
+                                {item.judul}
+                              </h4>
+                              <p className="text-xs text-stone-500 line-clamp-1 mt-0.5">
+                                {item.ringkasan}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                              <button
+                                type="button"
+                                onClick={() => setKajianView(idx)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>Edit Detail</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Hapus artikel kajian "${item.judul}"?`)) {
+                                    setDraft({ ...draft, kajian: draft.kajian.filter((_, i) => i !== idx) });
+                                    showToast("Artikel kajian telah dihapus.");
+                                  }
+                                }}
+                                className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                                title="Hapus Kajian"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
