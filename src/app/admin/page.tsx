@@ -1,10 +1,10 @@
-import { PublicSite } from "@/components/baladz/PublicSite";
+import { AdminDashboard } from "@/components/baladz/AdminDashboard";
 import { SiteContentProvider } from "@/components/baladz/SiteContentProvider";
 
-export default function Home() {
+export default function AdminPage() {
   return (
     <SiteContentProvider>
-      <PublicSite />
+      <AdminDashboard />
     </SiteContentProvider>
   );
 }

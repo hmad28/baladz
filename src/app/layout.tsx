@@ -1,21 +1,29 @@
 import type { Metadata } from "next";
-import { Nunito_Sans, Oswald } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const nunito = Nunito_Sans({
-  variable: "--font-nunito",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
-const oswald = Oswald({
-  variable: "--font-oswald",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Baladz | Pesantren Baladil Huffaadz",
+  title: "Baladz — Pendidikan Al-Qur’an untuk Kehidupan",
   description:
-    "Informasi Pesantren Baladz, kabar kegiatan, kajian, dan pendaftaran santri baru.",
+    "Informasi program pendidikan, pendaftaran santri baru, produk, kabar, dan kajian Baladz.",
+  openGraph: {
+    title: "Baladz — Pendidikan Al-Qur’an untuk Kehidupan",
+    description:
+      "Temukan program pendidikan Al-Qur’an yang sesuai untuk setiap tahap tumbuh.",
+    locale: "id_ID",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -24,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${nunito.variable} ${oswald.variable}`}>
+    <html lang="id" className={`${dmSans.variable} ${cormorant.variable}`}>
       <body>{children}</body>
     </html>
   );
