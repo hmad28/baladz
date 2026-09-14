@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { defaultSiteContent } from "@/content/site-content";
+import { getAdminSession } from "@/lib/auth";
 
 export async function GET() {
   const sql = getDb();
@@ -25,6 +26,14 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json(
+      { success: false, error: "Akses ditolak. Silakan login terlebih dahulu." },
+      { status: 401 }
+    );
+  }
+
   const sql = getDb();
   if (!sql) {
     return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 });

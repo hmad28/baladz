@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getAdminSession } from "@/lib/auth";
 
 export async function GET() {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json(
+      { success: false, error: "Akses ditolak. Sesi login admin diperlukan." },
+      { status: 401 }
+    );
+  }
+
   const sql = getDb();
   if (!sql) {
     return NextResponse.json({ success: false, data: [] });
@@ -49,6 +58,14 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json(
+      { success: false, error: "Akses ditolak. Sesi login admin diperlukan." },
+      { status: 401 }
+    );
+  }
+
   const sql = getDb();
   if (!sql) {
     return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 });
@@ -75,6 +92,14 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const session = await getAdminSession();
+  if (!session) {
+    return NextResponse.json(
+      { success: false, error: "Akses ditolak. Sesi login admin diperlukan." },
+      { status: 401 }
+    );
+  }
+
   const sql = getDb();
   if (!sql) {
     return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 });

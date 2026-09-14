@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -12,7 +13,9 @@ import {
   ExternalLink,
   GraduationCap,
   ImageIcon,
+  KeyRound,
   Layout,
+  LogOut,
   MessageCircle,
   Newspaper,
   Pencil,
@@ -24,6 +27,7 @@ import {
   Trash2,
   Upload,
   Users,
+  X,
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
 import { UploadButton } from "@/lib/uploadthing";
@@ -42,6 +46,7 @@ interface PendaftarRow {
 }
 
 export function AdminDashboard() {
+  const router = useRouter();
   const { draft, setDraft, save, reset, savedAt, isSaving } = useSiteContent();
 
   const [activeMenu, setActiveMenu] = useState<"popup" | "pendaftar" | "psb" | "jenjang" | "kabar" | "kajian" | "kontak">("popup");
@@ -52,6 +57,73 @@ export function AdminDashboard() {
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // State Ganti Password Modal
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  const handleLogout = async () => {
+    if (confirm("Apakah Anda yakin ingin keluar dari panel admin?")) {
+      try {
+        await fetch("/api/auth/logout", { method: "POST" });
+      } catch (err) {
+        console.error("Logout error:", err);
+      }
+      router.push("/admin/login");
+      router.refresh();
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPassword || !newPassword) {
+      setPasswordError("Semua field wajib diisi");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Konfirmasi password baru tidak cocok");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Password baru minimal 6 karakter");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPasswordError(data.error || "Gagal mengubah password");
+      } else {
+        setPasswordSuccess("Password berhasil diubah!");
+        setTimeout(() => {
+          setIsPasswordModalOpen(false);
+          setOldPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+          setPasswordSuccess(null);
+          showToast("Password admin berhasil diperbarui!");
+        }, 1200);
+      }
+    } catch {
+      setPasswordError("Terjadi kesalahan koneksi");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   // View mode untuk Kabar: null (tampilan list), "new" (halaman tambah baru), number (halaman edit detail)
   const [kabarView, setKabarView] = useState<number | "new" | null>(null);
@@ -250,6 +322,27 @@ export function AdminDashboard() {
             >
               <Save className="w-4 h-4" />
               <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+            </button>
+            <div className="h-6 w-px bg-stone-200 mx-1 hidden sm:block" />
+            <button
+              onClick={() => {
+                setPasswordError(null);
+                setPasswordSuccess(null);
+                setIsPasswordModalOpen(true);
+              }}
+              className="px-3 py-2 text-xs font-semibold rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center gap-1.5 text-stone-700 transition-colors cursor-pointer"
+              title="Ganti Password Admin"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-stone-500" />
+              <span className="hidden lg:inline">Ganti Password</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-2 text-xs font-semibold rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Keluar dari Panel Admin"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Keluar</span>
             </button>
           </div>
         </div>
@@ -2028,6 +2121,106 @@ export function AdminDashboard() {
           </main>
         </div>
       </div>
+
+      {/* MODAL GANTI PASSWORD */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 relative">
+            <button
+              onClick={() => setIsPasswordModalOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#0F4C3A] flex items-center justify-center">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-stone-800 text-base">Ganti Password Admin</h3>
+                <p className="text-xs text-stone-500">Perbarui kata sandi akun admin Baladz</p>
+              </div>
+            </div>
+
+            {passwordError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+                {passwordError}
+              </div>
+            )}
+
+            {passwordSuccess && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{passwordSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Password Lama
+                </label>
+                <input
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Masukkan password lama"
+                  required
+                  className="w-full text-sm border border-stone-300 rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0F4C3A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Password Baru (minimal 6 karakter)
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Masukkan password baru"
+                  required
+                  minLength={6}
+                  className="w-full text-sm border border-stone-300 rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0F4C3A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Konfirmasi Password Baru
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Ulangi password baru"
+                  required
+                  minLength={6}
+                  className="w-full text-sm border border-stone-300 rounded-xl px-3.5 py-2.5 outline-none focus:border-[#0F4C3A]"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="w-1/2 py-2.5 text-xs font-semibold rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="w-1/2 py-2.5 text-xs font-bold rounded-xl bg-[#0F4C3A] hover:bg-[#0c3f30] text-white transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+                >
+                  {isChangingPassword ? "Menyimpan..." : "Simpan Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
