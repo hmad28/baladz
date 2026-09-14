@@ -1,9 +1,5 @@
+import { BaladzSite } from "@/components/sites/baladz-net-49a37c47/root-8a5edab2/BaladzSite";
+
 export default function Home() {
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p className="text-muted-foreground">
-        Clone target not yet built. Run <code className="font-mono text-foreground">/clone-website</code> to start.
-      </p>
-    </main>
-  );
+  return <BaladzSite />;
 }
