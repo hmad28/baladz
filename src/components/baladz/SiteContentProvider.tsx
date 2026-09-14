@@ -10,15 +10,15 @@ import {
 } from "react";
 import {
   defaultSiteContent,
-  type SiteContent,
+  type BaladzSiteContent,
 } from "@/content/site-content";
 
-const storageKey = "baladz-site-content-v1";
+const storageKey = "baladz-site-content-v2";
 
 interface SiteContentContextValue {
-  content: SiteContent;
-  draft: SiteContent;
-  setDraft: (content: SiteContent) => void;
+  content: BaladzSiteContent;
+  draft: BaladzSiteContent;
+  setDraft: (content: BaladzSiteContent) => void;
   save: () => void;
   reset: () => void;
   savedAt: string | null;
@@ -27,8 +27,8 @@ interface SiteContentContextValue {
 const SiteContentContext = createContext<SiteContentContextValue | null>(null);
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<SiteContent>(defaultSiteContent);
-  const [draft, setDraft] = useState<SiteContent>(defaultSiteContent);
+  const [content, setContent] = useState<BaladzSiteContent>(defaultSiteContent);
+  const [draft, setDraft] = useState<BaladzSiteContent>(defaultSiteContent);
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
     if (!stored) return;
 
     try {
-      const parsed = JSON.parse(stored) as SiteContent;
+      const parsed = JSON.parse(stored) as BaladzSiteContent;
       window.queueMicrotask(() => {
         setContent(parsed);
         setDraft(parsed);

@@ -1,322 +1,616 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
+  ArrowLeft,
   BookOpen,
-  Boxes,
-  Check,
-  ChevronRight,
-  FileText,
-  GalleryHorizontal,
+  Copy,
+  DollarSign,
   GraduationCap,
   Home,
-  LayoutDashboard,
   Newspaper,
-  Package,
+  Phone,
   RotateCcw,
   Save,
-  Settings,
 } from "lucide-react";
-import type {
-  GalleryItem,
-  ProductItem,
-  ProgramItem,
-  PublicationItem,
-  SiteContent,
-} from "@/content/site-content";
 import { useSiteContent } from "./SiteContentProvider";
-
-type AdminSection =
-  | "dashboard"
-  | "homepage"
-  | "profile"
-  | "programs"
-  | "psb"
-  | "news"
-  | "studies"
-  | "gallery"
-  | "products"
-  | "settings";
-
-const groups: Array<{ label: string; items: Array<{ id: AdminSection; label: string; icon: typeof Home }> }> = [
-  { label: "", items: [{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard }] },
-  { label: "Konten", items: [{ id: "homepage", label: "Homepage", icon: Home }, { id: "profile", label: "Profil", icon: FileText }] },
-  { label: "Pendidikan", items: [{ id: "programs", label: "Program", icon: GraduationCap }, { id: "psb", label: "PSB", icon: Boxes }] },
-  { label: "Publikasi", items: [{ id: "news", label: "Kabar", icon: Newspaper }, { id: "studies", label: "Kajian", icon: BookOpen }, { id: "gallery", label: "Galeri", icon: GalleryHorizontal }] },
-  { label: "", items: [{ id: "products", label: "Produk", icon: Package }, { id: "settings", label: "Pengaturan website", icon: Settings }] },
-];
-
-function Field({ label, value, onChange, textarea = false }: { label: string; value: string; onChange: (value: string) => void; textarea?: boolean }) {
-  return (
-    <label className="admin-field">
-      <span>{label}</span>
-      {textarea ? (
-        <textarea className="admin-textarea" onChange={(event) => onChange(event.target.value)} value={value} />
-      ) : (
-        <input className="admin-input" onChange={(event) => onChange(event.target.value)} value={value} />
-      )}
-    </label>
-  );
-}
-
-function Panel({ title, description, children }: { title: string; description: string; children: ReactNode }) {
-  return (
-    <section>
-      <p className="text-xs font-bold uppercase tracking-[.18em] text-forest/45">Editor konten</p>
-      <h1 className="mt-3 font-serif text-4xl font-semibold tracking-[-.035em] text-forest sm:text-5xl">{title}</h1>
-      <p className="mt-3 max-w-[48rem] text-sm leading-6 text-ink/58">{description}</p>
-      <div className="mt-8">{children}</div>
-    </section>
-  );
-}
-
-function ItemCard({ index, title, children }: { index: number; title: string; children: ReactNode }) {
-  return (
-    <article className="rounded-[1rem] border border-forest/10 bg-white p-5 sm:p-6">
-      <div className="mb-5 flex items-center gap-3 border-b border-forest/10 pb-4">
-        <span className="font-mono text-xs text-terracotta">{String(index + 1).padStart(2, "0")}</span>
-        <h2 className="font-semibold text-forest">{title}</h2>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-    </article>
-  );
-}
 
 export function AdminDashboard() {
   const { draft, setDraft, save, reset, savedAt } = useSiteContent();
-  const [section, setSection] = useState<AdminSection>("dashboard");
-  const [showSaved, setShowSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<"lembaga" | "psb" | "jenjang" | "kabar" | "kajian" | "kontak">("psb");
+  const [copied, setCopied] = useState(false);
 
-  function update<K extends keyof SiteContent>(key: K, value: SiteContent[K]) {
-    setDraft({ ...draft, [key]: value });
-  }
-
-  function handleSave() {
-    save();
-    setShowSaved(true);
-    window.setTimeout(() => setShowSaved(false), 2200);
-  }
-
-  function updateProgram(index: number, value: ProgramItem) {
-    const items = [...draft.programs];
-    items[index] = value;
-    update("programs", items);
-  }
-
-  function updateProduct(index: number, value: ProductItem) {
-    const items = [...draft.products];
-    items[index] = value;
-    update("products", items);
-  }
-
-  function updatePublication(key: "news" | "studies", index: number, value: PublicationItem) {
-    const items = [...draft[key]];
-    items[index] = value;
-    update(key, items);
-  }
-
-  function updateGallery(index: number, value: GalleryItem) {
-    const items = [...draft.gallery];
-    items[index] = value;
-    update("gallery", items);
-  }
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(draft, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="admin-shell lg:grid lg:grid-cols-[17rem_1fr]">
-      <aside className="border-b border-forest/10 bg-forest text-white lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
-        <div className="flex h-[72px] items-center justify-between border-b border-white/10 px-5">
-          <Link className="font-serif text-2xl font-semibold" href="/">Baladz</Link>
-          <span className="rounded-md bg-white/10 px-2 py-1 text-[.65rem] font-bold uppercase tracking-[.14em] text-white/65">Admin</span>
-        </div>
-        <nav aria-label="Navigasi admin" className="flex gap-2 overflow-x-auto px-3 py-4 lg:block lg:h-[calc(100vh-72px)] lg:overflow-y-auto">
-          {groups.map((group, groupIndex) => (
-            <div className="shrink-0 lg:mb-6" key={`${group.label}-${groupIndex}`}>
-              {group.label && <p className="mb-2 hidden px-3 text-[.62rem] font-bold uppercase tracking-[.18em] text-white/35 lg:block">{group.label}</p>}
-              <div className="flex gap-1 lg:grid">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const active = section === item.id;
-                  return (
-                    <button className={`flex min-h-10 items-center gap-3 whitespace-nowrap rounded-lg px-3 text-left text-sm transition-colors ${active ? "bg-white text-forest" : "text-white/62 hover:bg-white/8 hover:text-white"}`} key={item.id} onClick={() => setSection(item.id)} type="button">
-                      <Icon size={17} strokeWidth={1.7} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+    <div className="min-h-screen bg-[#F0F2ED] text-stone-800 font-sans">
+      {/* Top bar */}
+      <header className="bg-white border-b border-stone-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="p-2 rounded-lg hover:bg-stone-100 text-stone-600 transition-colors"
+              title="Kembali ke Website"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="font-serif font-bold text-lg text-emerald-950">Panel Editor Konten Baladz</h1>
+              <p className="text-[11px] text-stone-500">Edit isi website, biaya, dan kontak tanpa ribet</p>
             </div>
-          ))}
-        </nav>
-      </aside>
-
-      <main className="min-w-0">
-        <header className="sticky top-0 z-20 flex min-h-[72px] items-center justify-between gap-4 border-b border-forest/10 bg-[#f0f1ed]/90 px-4 backdrop-blur-xl sm:px-8">
-          <div>
-            <p className="text-sm font-semibold text-forest">Baladz Content Studio</p>
-            <p className="text-xs text-ink/40">Perubahan tersimpan di browser untuk demo ini.</p>
           </div>
+
           <div className="flex items-center gap-2">
-            <Link className="hidden min-h-10 items-center gap-2 rounded-lg border border-forest/15 px-3 text-xs font-semibold text-forest hover:bg-white sm:inline-flex" href="/">Lihat website <ChevronRight size={15} /></Link>
-            <button className="grid size-10 place-items-center rounded-lg border border-forest/15 text-forest hover:bg-white" onClick={reset} title="Kembalikan konten awal" type="button"><RotateCcw size={17} /></button>
-            <button className="button-primary min-h-10 py-2" onClick={handleSave} type="button">{showSaved ? <Check size={16} /> : <Save size={16} />} {showSaved ? "Tersimpan" : "Simpan"}</button>
+            {savedAt && (
+              <span className="text-xs text-emerald-700 font-medium hidden sm:inline">
+                Tersimpan pukul {savedAt}
+              </span>
+            )}
+            <button
+              onClick={handleCopyJson}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-stone-300 hover:bg-stone-50 flex items-center gap-1.5 cursor-pointer"
+              title="Salin data JSON"
+            >
+              <Copy className="w-3.5 h-3.5 text-stone-500" />
+              <span>{copied ? "Tersalin!" : "Salin JSON"}</span>
+            </button>
+            <button
+              onClick={() => {
+                if (confirm("Reset kembali semua isi ke pengaturan default awal?")) {
+                  reset();
+                }
+              }}
+              className="p-2 text-xs font-semibold rounded-md text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+              title="Reset ke Default"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={save}
+              className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-4 py-2 rounded-md font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              Simpan Perubahan
+            </button>
           </div>
-        </header>
-
-        <div className="mx-auto max-w-[74rem] px-4 py-8 sm:px-8 sm:py-12">
-          {section === "dashboard" && (
-            <section>
-              <p className="text-xs font-bold uppercase tracking-[.18em] text-forest/45">Ringkasan</p>
-              <h1 className="mt-3 font-serif text-5xl font-semibold tracking-[-.04em] text-forest">Selamat datang.</h1>
-              <p className="mt-3 text-sm text-ink/55">Semua bagian penting website ada di satu tempat.</p>
-              <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  ["Program aktif", draft.programs.length, GraduationCap],
-                  ["Produk", draft.products.length, Package],
-                  ["Kabar & kajian", draft.news.length + draft.studies.length, Newspaper],
-                  ["Foto galeri", draft.gallery.length, GalleryHorizontal],
-                ].map(([label, value, Icon]) => {
-                  const DashboardIcon = Icon as typeof Home;
-                  return (
-                    <article className="rounded-[1rem] bg-white p-5 shadow-[0_12px_34px_rgb(22_60_50_/_6%)]" key={String(label)}>
-                      <DashboardIcon className="text-terracotta" size={22} strokeWidth={1.6} />
-                      <p className="mt-8 font-serif text-4xl font-semibold text-forest">{String(value)}</p>
-                      <p className="mt-1 text-sm text-ink/48">{String(label)}</p>
-                    </article>
-                  );
-                })}
-              </div>
-              <div className="mt-8 grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
-                <article className="rounded-[1rem] bg-white p-6">
-                  <h2 className="font-semibold text-forest">Jalur edit cepat</h2>
-                  <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                    {["homepage", "programs", "psb", "products"].map((id) => {
-                      const item = groups.flatMap((group) => group.items).find((entry) => entry.id === id);
-                      if (!item) return null;
-                      return <button className="flex items-center justify-between rounded-lg bg-sage/55 px-4 py-3 text-left text-sm font-semibold text-forest hover:bg-sage" key={id} onClick={() => setSection(id as AdminSection)} type="button">{item.label}<ChevronRight size={16} /></button>;
-                    })}
-                  </div>
-                </article>
-                <article className="rounded-[1rem] bg-forest p-6 text-white">
-                  <p className="text-xs font-bold uppercase tracking-[.16em] text-white/45">Status konten</p>
-                  <p className="mt-6 font-serif text-3xl">Siap dipublikasikan</p>
-                  <p className="mt-3 text-sm leading-6 text-white/58">{savedAt ? `Terakhir disimpan pukul ${savedAt}.` : "Belum ada perubahan pada sesi ini."}</p>
-                </article>
-              </div>
-            </section>
-          )}
-
-          {section === "homepage" && (
-            <Panel title="Homepage" description="Atur pesan pertama yang dilihat orang tua dan arahkan mereka ke program atau pendaftaran.">
-              <div className="grid gap-5 rounded-[1rem] bg-white p-5 sm:grid-cols-2 sm:p-7">
-                <Field label="Label di atas judul" value={draft.hero.eyebrow} onChange={(value) => update("hero", { ...draft.hero, eyebrow: value })} />
-                <Field label="Judul hero" value={draft.hero.title} onChange={(value) => update("hero", { ...draft.hero, title: value })} />
-                <div className="sm:col-span-2"><Field label="Penjelasan singkat" textarea value={draft.hero.description} onChange={(value) => update("hero", { ...draft.hero, description: value })} /></div>
-                <Field label="CTA utama" value={draft.hero.primaryCta} onChange={(value) => update("hero", { ...draft.hero, primaryCta: value })} />
-                <Field label="CTA sekunder" value={draft.hero.secondaryCta} onChange={(value) => update("hero", { ...draft.hero, secondaryCta: value })} />
-              </div>
-            </Panel>
-          )}
-
-          {section === "profile" && (
-            <Panel title="Profil Baladz" description="Konten ringkas yang membangun kepercayaan sebelum pengunjung melihat program.">
-              <div className="grid gap-5 rounded-[1rem] bg-white p-5 sm:p-7">
-                <Field label="Penanda tahun" value={draft.profile.since} onChange={(value) => update("profile", { ...draft.profile, since: value })} />
-                <Field label="Judul profil" value={draft.profile.title} onChange={(value) => update("profile", { ...draft.profile, title: value })} />
-                <Field label="Deskripsi" textarea value={draft.profile.description} onChange={(value) => update("profile", { ...draft.profile, description: value })} />
-              </div>
-            </Panel>
-          )}
-
-          {section === "programs" && (
-            <Panel title="Program pendidikan" description="Edit nama, tahap usia, deskripsi, dan foto setiap program.">
-              <div className="grid gap-4">
-                {draft.programs.map((program, index) => (
-                  <ItemCard index={index} key={`${program.shortName}-${index}`} title={program.shortName}>
-                    <Field label="Nama pendek" value={program.shortName} onChange={(value) => updateProgram(index, { ...program, shortName: value })} />
-                    <Field label="Nama program" value={program.name} onChange={(value) => updateProgram(index, { ...program, name: value })} />
-                    <Field label="Tahap / usia" value={program.stage} onChange={(value) => updateProgram(index, { ...program, stage: value })} />
-                    <Field label="Path gambar" value={program.image} onChange={(value) => updateProgram(index, { ...program, image: value })} />
-                    <div className="sm:col-span-2"><Field label="Deskripsi" textarea value={program.description} onChange={(value) => updateProgram(index, { ...program, description: value })} /></div>
-                  </ItemCard>
-                ))}
-              </div>
-            </Panel>
-          )}
-
-          {section === "psb" && (
-            <Panel title="Pendaftaran santri baru" description="Satu sumber informasi untuk tahun ajaran, jadwal, syarat, biaya, dan tautan daftar.">
-              <div className="grid gap-5 rounded-[1rem] bg-white p-5 sm:grid-cols-2 sm:p-7">
-                <Field label="Tahun ajaran" value={draft.psb.academicYear} onChange={(value) => update("psb", { ...draft.psb, academicYear: value })} />
-                <Field label="Judul" value={draft.psb.title} onChange={(value) => update("psb", { ...draft.psb, title: value })} />
-                <div className="sm:col-span-2"><Field label="Deskripsi" textarea value={draft.psb.description} onChange={(value) => update("psb", { ...draft.psb, description: value })} /></div>
-                <Field label="Gelombang / jadwal" value={draft.psb.wave} onChange={(value) => update("psb", { ...draft.psb, wave: value })} />
-                <Field label="Jadwal seleksi" value={draft.psb.schedule} onChange={(value) => update("psb", { ...draft.psb, schedule: value })} />
-                <Field label="Persyaratan" value={draft.psb.requirements} onChange={(value) => update("psb", { ...draft.psb, requirements: value })} />
-                <Field label="Catatan biaya" value={draft.psb.feeNote} onChange={(value) => update("psb", { ...draft.psb, feeNote: value })} />
-                <div className="sm:col-span-2"><Field label="Link pendaftaran" value={draft.psb.registrationUrl} onChange={(value) => update("psb", { ...draft.psb, registrationUrl: value })} /></div>
-              </div>
-            </Panel>
-          )}
-
-          {(section === "news" || section === "studies") && (
-            <Panel title={section === "news" ? "Kabar" : "Kajian"} description="Perbarui judul, tanggal, ringkasan, dan gambar publikasi.">
-              <div className="grid gap-4">
-                {draft[section].map((item, index) => (
-                  <ItemCard index={index} key={`${item.title}-${index}`} title={item.title}>
-                    <Field label="Judul" value={item.title} onChange={(value) => updatePublication(section, index, { ...item, title: value })} />
-                    <Field label="Tanggal" value={item.date} onChange={(value) => updatePublication(section, index, { ...item, date: value })} />
-                    <Field label="Path gambar" value={item.image} onChange={(value) => updatePublication(section, index, { ...item, image: value })} />
-                    <div className="sm:col-span-2"><Field label="Ringkasan" textarea value={item.excerpt} onChange={(value) => updatePublication(section, index, { ...item, excerpt: value })} /></div>
-                  </ItemCard>
-                ))}
-              </div>
-            </Panel>
-          )}
-
-          {section === "gallery" && (
-            <Panel title="Galeri" description="Atur foto kegiatan dan caption singkatnya.">
-              <div className="grid gap-4 sm:grid-cols-2">
-                {draft.gallery.map((item, index) => (
-                  <ItemCard index={index} key={`${item.caption}-${index}`} title={item.caption}>
-                    <div className="sm:col-span-2"><Field label="Caption" value={item.caption} onChange={(value) => updateGallery(index, { ...item, caption: value })} /></div>
-                    <div className="sm:col-span-2"><Field label="Path gambar" value={item.image} onChange={(value) => updateGallery(index, { ...item, image: value })} /></div>
-                  </ItemCard>
-                ))}
-              </div>
-            </Panel>
-          )}
-
-          {section === "products" && (
-            <Panel title="Produk" description="Kelola katalog sederhana untuk checkout langsung melalui WhatsApp.">
-              <div className="grid gap-4 sm:grid-cols-2">
-                {draft.products.map((product, index) => (
-                  <ItemCard index={index} key={`${product.name}-${index}`} title={product.name}>
-                    <Field label="Nama produk" value={product.name} onChange={(value) => updateProduct(index, { ...product, name: value })} />
-                    <Field label="Jenis" value={product.kind} onChange={(value) => updateProduct(index, { ...product, kind: value })} />
-                    <Field label="Harga" value={product.price} onChange={(value) => updateProduct(index, { ...product, price: value })} />
-                    <div className="sm:col-span-2"><Field label="Deskripsi" textarea value={product.description} onChange={(value) => updateProduct(index, { ...product, description: value })} /></div>
-                  </ItemCard>
-                ))}
-              </div>
-            </Panel>
-          )}
-
-          {section === "settings" && (
-            <Panel title="Pengaturan website" description="Kontak dan SEO bersifat global: ubah sekali, seluruh website ikut berubah.">
-              <div className="grid gap-5 rounded-[1rem] bg-white p-5 sm:grid-cols-2 sm:p-7">
-                <Field label="Nomor WhatsApp" value={draft.settings.whatsapp} onChange={(value) => update("settings", { ...draft.settings, whatsapp: value })} />
-                <Field label="Email" value={draft.settings.email} onChange={(value) => update("settings", { ...draft.settings, email: value })} />
-                <div className="sm:col-span-2"><Field label="Alamat" value={draft.settings.address} onChange={(value) => update("settings", { ...draft.settings, address: value })} /></div>
-                <Field label="Instagram" value={draft.settings.instagram} onChange={(value) => update("settings", { ...draft.settings, instagram: value })} />
-                <Field label="YouTube" value={draft.settings.youtube} onChange={(value) => update("settings", { ...draft.settings, youtube: value })} />
-                <div className="sm:col-span-2"><Field label="SEO title" value={draft.settings.seoTitle} onChange={(value) => update("settings", { ...draft.settings, seoTitle: value })} /></div>
-                <div className="sm:col-span-2"><Field label="SEO description" textarea value={draft.settings.seoDescription} onChange={(value) => update("settings", { ...draft.settings, seoDescription: value })} /></div>
-              </div>
-            </Panel>
-          )}
         </div>
-      </main>
+      </header>
+
+      {/* Main Layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid md:grid-cols-12 gap-8">
+          {/* Sidebar Menu */}
+          <aside className="md:col-span-3 space-y-1 bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs h-fit">
+            <button
+              onClick={() => setActiveTab("psb")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                activeTab === "psb" ? "bg-emerald-800 text-white" : "text-stone-700 hover:bg-stone-100"
+              }`}
+            >
+              <DollarSign className="w-4 h-4" />
+              <span>PSB & Biaya Pendaftaran</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("jenjang")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                activeTab === "jenjang" ? "bg-emerald-800 text-white" : "text-stone-700 hover:bg-stone-100"
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>3 Jenjang Pendidikan</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("lembaga")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                activeTab === "lembaga" ? "bg-emerald-800 text-white" : "text-stone-700 hover:bg-stone-100"
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span>Profil Lembaga & Kampus</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("kabar")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                activeTab === "kabar" ? "bg-emerald-800 text-white" : "text-stone-700 hover:bg-stone-100"
+              }`}
+            >
+              <Newspaper className="w-4 h-4" />
+              <span>Kabar dari Baladz ({draft.kabar.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("kajian")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                activeTab === "kajian" ? "bg-emerald-800 text-white" : "text-stone-700 hover:bg-stone-100"
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Kajian Islami ({draft.kajian.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("kontak")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                activeTab === "kontak" ? "bg-emerald-800 text-white" : "text-stone-700 hover:bg-stone-100"
+              }`}
+            >
+              <Phone className="w-4 h-4" />
+              <span>Kontak & Media Sosial</span>
+            </button>
+          </aside>
+
+          {/* Form Content Area */}
+          <main className="md:col-span-9 bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs">
+            {/* 1. TAB PSB & BIAYA */}
+            {activeTab === "psb" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-serif font-bold text-xl text-emerald-950">Pengaturan PSB & Biaya Pendaftaran</h2>
+                  <p className="text-xs text-stone-500 mt-1">Ubah tahun ajaran, kuota santri, dan rekening transfer resmi</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Tahun Ajaran</label>
+                    <input
+                      type="text"
+                      value={draft.psb.tahunAjaran}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, tahunAjaran: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Kuota Santri Diterima</label>
+                    <input
+                      type="number"
+                      value={draft.psb.kuotaSantri}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, kuotaSantri: Number(e.target.value) } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Tanggal Buka Pendaftaran</label>
+                    <input
+                      type="text"
+                      value={draft.psb.tanggalBuka}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, tanggalBuka: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Tanggal Tutup Pendaftaran</label>
+                    <input
+                      type="text"
+                      value={draft.psb.tanggalTutup}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, tanggalTutup: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Biaya Formulir Pendaftaran (IDR)</label>
+                    <input
+                      type="number"
+                      value={draft.psb.biayaPendaftaran}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, biayaPendaftaran: Number(e.target.value) } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Batas Akhir Daftar Ulang</label>
+                    <input
+                      type="text"
+                      value={draft.psb.batasDaftarUlang}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, batasDaftarUlang: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-stone-200">
+                  <h3 className="font-bold text-stone-800 text-sm mb-3">Rekening Pembayaran Yayasan</h3>
+                  <div className="grid sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+                    <div>
+                      <label className="block font-semibold mb-1 text-stone-700">Nama Bank / Keterangan</label>
+                      <input
+                        type="text"
+                        value={draft.psb.rekeningPembayaran.bank}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            psb: {
+                              ...draft.psb,
+                              rekeningPembayaran: { ...draft.psb.rekeningPembayaran, bank: e.target.value },
+                            },
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1 text-stone-700">Nomor Rekening</label>
+                      <input
+                        type="text"
+                        value={draft.psb.rekeningPembayaran.nomorRekening}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            psb: {
+                              ...draft.psb,
+                              rekeningPembayaran: { ...draft.psb.rekeningPembayaran, nomorRekening: e.target.value },
+                            },
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block font-semibold mb-1 text-stone-700">Atas Nama Pemilik Rekening</label>
+                      <input
+                        type="text"
+                        value={draft.psb.rekeningPembayaran.atasNama}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            psb: {
+                              ...draft.psb,
+                              rekeningPembayaran: { ...draft.psb.rekeningPembayaran, atasNama: e.target.value },
+                            },
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. TAB 3 JENJANG PENDIDIKAN */}
+            {activeTab === "jenjang" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-serif font-bold text-xl text-emerald-950">Biaya & Informasi 3 Jenjang Pendidikan</h2>
+                  <p className="text-xs text-stone-500 mt-1">Ubah uang pangkal, SPP syahriyah, dan biaya asrama masing-masing jenjang</p>
+                </div>
+
+                <div className="space-y-6">
+                  {draft.jenjang.map((item, idx) => (
+                    <div key={item.id} className="p-5 border border-stone-200 rounded-xl bg-stone-50/60 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-emerald-900">{item.nama}</span>
+                        <span className="text-xs text-stone-500">{item.tingkat}</span>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block font-medium mb-1 text-stone-600">Rentang Usia</label>
+                          <input
+                            type="text"
+                            value={item.rentangUsia}
+                            onChange={(e) => {
+                              const updated = [...draft.jenjang];
+                              updated[idx] = { ...updated[idx], rentangUsia: e.target.value };
+                              setDraft({ ...draft, jenjang: updated });
+                            }}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-1 text-stone-600">Ijazah yang Didapat</label>
+                          <input
+                            type="text"
+                            value={item.ijazah}
+                            onChange={(e) => {
+                              const updated = [...draft.jenjang];
+                              updated[idx] = { ...updated[idx], ijazah: e.target.value };
+                              setDraft({ ...draft, jenjang: updated });
+                            }}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-1 text-stone-600">Uang Pangkal (Rp)</label>
+                          <input
+                            type="number"
+                            value={item.uangPangkal}
+                            onChange={(e) => {
+                              const updated = [...draft.jenjang];
+                              updated[idx] = { ...updated[idx], uangPangkal: Number(e.target.value) };
+                              setDraft({ ...draft, jenjang: updated });
+                            }}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded bg-white font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-medium mb-1 text-stone-600">SPP / Syahriyah Bulanan (Rp)</label>
+                          <input
+                            type="number"
+                            value={item.sppBulanan}
+                            onChange={(e) => {
+                              const updated = [...draft.jenjang];
+                              updated[idx] = { ...updated[idx], sppBulanan: Number(e.target.value) };
+                              setDraft({ ...draft, jenjang: updated });
+                            }}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded bg-white font-mono"
+                          />
+                        </div>
+                        {item.isBoardingTersedia && (
+                          <div className="sm:col-span-2">
+                            <label className="block font-medium mb-1 text-stone-600">Biaya Boarding / Asrama (Rp)</label>
+                            <input
+                              type="number"
+                              value={item.biayaBoarding || 0}
+                              onChange={(e) => {
+                                const updated = [...draft.jenjang];
+                                updated[idx] = { ...updated[idx], biayaBoarding: Number(e.target.value) };
+                                setDraft({ ...draft, jenjang: updated });
+                              }}
+                              className="w-full px-3 py-1.5 border border-stone-300 rounded bg-white font-mono"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. TAB PROFIL LEMBAGA */}
+            {activeTab === "lembaga" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-serif font-bold text-xl text-emerald-950">Profil Lembaga & Fasilitas KBM</h2>
+                  <p className="text-xs text-stone-500 mt-1">Ubah deskripsi profil, yayasan, dan lokasi kampus KBM</p>
+                </div>
+
+                <div className="space-y-4 text-xs sm:text-sm">
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Nama Lembaga</label>
+                    <input
+                      type="text"
+                      value={draft.lembaga.nama}
+                      onChange={(e) => setDraft({ ...draft, lembaga: { ...draft.lembaga, nama: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Tagline</label>
+                    <input
+                      type="text"
+                      value={draft.lembaga.tagline}
+                      onChange={(e) => setDraft({ ...draft, lembaga: { ...draft.lembaga, tagline: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Nama Yayasan</label>
+                    <input
+                      type="text"
+                      value={draft.lembaga.yayasan}
+                      onChange={(e) => setDraft({ ...draft, lembaga: { ...draft.lembaga, yayasan: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Deskripsi Singkat Lembaga</label>
+                    <textarea
+                      rows={3}
+                      value={draft.lembaga.deskripsi}
+                      onChange={(e) => setDraft({ ...draft, lembaga: { ...draft.lembaga, deskripsi: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. TAB KABAR BALADZ */}
+            {activeTab === "kabar" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-serif font-bold text-xl text-emerald-950">Daftar Kabar dari Baladz</h2>
+                  <p className="text-xs text-stone-500 mt-1">Edit judul dan ringkasan warta/kegiatan terbaru</p>
+                </div>
+
+                <div className="space-y-4">
+                  {draft.kabar.map((item, idx) => (
+                    <div key={item.id} className="p-4 border border-stone-200 rounded-xl space-y-3 bg-stone-50/50">
+                      <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block font-semibold text-stone-600 mb-1">Judul Kabar</label>
+                          <input
+                            type="text"
+                            value={item.judul}
+                            onChange={(e) => {
+                              const updated = [...draft.kabar];
+                              updated[idx] = { ...updated[idx], judul: e.target.value };
+                              setDraft({ ...draft, kabar: updated });
+                            }}
+                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold text-stone-600 mb-1">Kategori / Tanggal</label>
+                          <input
+                            type="text"
+                            value={`${item.kategori} • ${item.tanggal}`}
+                            disabled
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded bg-stone-100 text-stone-500"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-600 mb-1">Ringkasan</label>
+                          <textarea
+                            rows={2}
+                            value={item.ringkasan}
+                            onChange={(e) => {
+                              const updated = [...draft.kabar];
+                              updated[idx] = { ...updated[idx], ringkasan: e.target.value };
+                              setDraft({ ...draft, kabar: updated });
+                            }}
+                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 5. TAB KAJIAN */}
+            {activeTab === "kajian" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-serif font-bold text-xl text-emerald-950">Daftar Kajian Islami & Parenting</h2>
+                  <p className="text-xs text-stone-500 mt-1">Kelola konten artikel islami untuk orang tua</p>
+                </div>
+
+                <div className="space-y-4">
+                  {draft.kajian.map((item, idx) => (
+                    <div key={item.id} className="p-4 border border-stone-200 rounded-xl space-y-3 bg-stone-50/50">
+                      <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block font-semibold text-stone-600 mb-1">Judul Kajian</label>
+                          <input
+                            type="text"
+                            value={item.judul}
+                            onChange={(e) => {
+                              const updated = [...draft.kajian];
+                              updated[idx] = { ...updated[idx], judul: e.target.value };
+                              setDraft({ ...draft, kajian: updated });
+                            }}
+                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold text-stone-600 mb-1">Kategori / Penulis</label>
+                          <input
+                            type="text"
+                            value={`${item.kategori} • ${item.penulis}`}
+                            disabled
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded bg-stone-100 text-stone-500"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-stone-600 mb-1">Ringkasan</label>
+                          <textarea
+                            rows={2}
+                            value={item.ringkasan}
+                            onChange={(e) => {
+                              const updated = [...draft.kajian];
+                              updated[idx] = { ...updated[idx], ringkasan: e.target.value };
+                              setDraft({ ...draft, kajian: updated });
+                            }}
+                            className="w-full px-2.5 py-1.5 border border-stone-300 rounded bg-white text-stone-800"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 6. TAB KONTAK & MEDSOS */}
+            {activeTab === "kontak" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="font-serif font-bold text-xl text-emerald-950">Kontak & Media Sosial Resmi</h2>
+                  <p className="text-xs text-stone-500 mt-1">Ubah nomor WhatsApp, telepon, email, dan alamat lembaga</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">WhatsApp Utama (Untuk PSB)</label>
+                    <input
+                      type="text"
+                      value={draft.kontak.whatsappUtama}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          kontak: { ...draft.kontak, whatsappUtama: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">WhatsApp Kedua</label>
+                    <input
+                      type="text"
+                      value={draft.kontak.whatsappKedua}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          kontak: { ...draft.kontak, whatsappKedua: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Email Resmi</label>
+                    <input
+                      type="email"
+                      value={draft.kontak.email}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          kontak: { ...draft.kontak, email: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Nomor Telepon</label>
+                    <input
+                      type="text"
+                      value={draft.kontak.telepon}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          kontak: { ...draft.kontak, telepon: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-semibold mb-1 text-stone-700">Alamat Lengkap</label>
+                    <textarea
+                      rows={2}
+                      value={draft.kontak.alamatLengkap}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          kontak: { ...draft.kontak, alamatLengkap: e.target.value },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
