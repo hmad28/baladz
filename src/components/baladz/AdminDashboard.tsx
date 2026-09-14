@@ -10,6 +10,8 @@ import {
   DollarSign,
   ExternalLink,
   GraduationCap,
+  ImageIcon,
+  Layout,
   MessageCircle,
   Newspaper,
   Phone,
@@ -438,45 +440,105 @@ export function AdminDashboard() {
                 {/* Form Setup + Live Preview */}
                 <div className="grid md:grid-cols-12 gap-6">
                   {/* Form Kiri */}
-                  <div className="md:col-span-7 bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4 text-xs sm:text-sm">
-                    <h3 className="font-bold text-stone-800 text-sm">Formulir Isi Popup</h3>
-
+                  <div className="md:col-span-7 bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-5 text-xs sm:text-sm">
+                    {/* Mode Tampilan Selector */}
                     <div>
-                      <label className="block font-semibold mb-1 text-stone-700">Judul Pengumuman</label>
-                      <input
-                        type="text"
-                        value={draft.popup.judul}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            popup: { ...draft.popup, judul: e.target.value },
-                          })
-                        }
-                        placeholder="Contoh: Penerimaan Santri Baru TA 2027/2028 Dibuka!"
-                        className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold mb-1 text-stone-700">Subjudul / Pesan Singkat</label>
-                      <textarea
-                        rows={3}
-                        value={draft.popup.subjudul}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            popup: { ...draft.popup, subjudul: e.target.value },
-                          })
-                        }
-                        placeholder="Pesan ajakan untuk orang tua santri..."
-                        className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold mb-1 text-stone-700">
-                        Gambar Poster Pengumuman (UploadThing / URL)
+                      <label className="block font-semibold mb-2 text-stone-700">
+                        Format Tampilan Popup
                       </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Pilihan 1: Full Gambar */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDraft({
+                              ...draft,
+                              popup: { ...draft.popup, modeTampilan: "gambar_saja" },
+                            })
+                          }
+                          className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                            draft.popup.modeTampilan === "gambar_saja"
+                              ? "border-[#0F4C3A] bg-emerald-50/70 ring-2 ring-[#0F4C3A]/20"
+                              : "border-stone-200 hover:border-stone-300 bg-white"
+                          }`}
+                        >
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              draft.popup.modeTampilan === "gambar_saja"
+                                ? "bg-[#0F4C3A] text-white"
+                                : "bg-stone-100 text-stone-600"
+                            }`}
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-stone-800 text-xs flex items-center gap-1.5">
+                              <span>Hanya Gambar / Flyer</span>
+                              {draft.popup.modeTampilan === "gambar_saja" && (
+                                <span className="text-[9px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-semibold">
+                                  Aktif
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                              Flyer brosur tampil utuh tanpa terpotong. Teks judul & deskripsi opsional.
+                            </p>
+                          </div>
+                        </button>
+
+                        {/* Pilihan 2: Gambar + Teks */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDraft({
+                              ...draft,
+                              popup: { ...draft.popup, modeTampilan: "gambar_teks" },
+                            })
+                          }
+                          className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                            draft.popup.modeTampilan !== "gambar_saja"
+                              ? "border-[#0F4C3A] bg-emerald-50/70 ring-2 ring-[#0F4C3A]/20"
+                              : "border-stone-200 hover:border-stone-300 bg-white"
+                          }`}
+                        >
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${
+                              draft.popup.modeTampilan !== "gambar_saja"
+                                ? "bg-[#0F4C3A] text-white"
+                                : "bg-stone-100 text-stone-600"
+                            }`}
+                          >
+                            <Layout className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-stone-800 text-xs flex items-center gap-1.5">
+                              <span>Gambar + Teks</span>
+                              {draft.popup.modeTampilan !== "gambar_saja" && (
+                                <span className="text-[9px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-semibold">
+                                  Aktif
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                              Banner gambar di atas disertai judul, narasi pesan, dan tombol aksi.
+                            </p>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Upload Poster */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-semibold text-stone-700">
+                          Gambar Poster / Flyer <span className="text-emerald-700">*</span>
+                        </label>
+                        {draft.popup.modeTampilan === "gambar_saja" && (
+                          <span className="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded font-medium border border-amber-200">
+                            Disarankan foto pamflet/flyer potret
+                          </span>
+                        )}
+                      </div>
                       <div className="space-y-2">
                         {/* UploadThing Button */}
                         <div className="p-3 bg-stone-50 border border-dashed border-stone-300 rounded-xl flex items-center justify-between">
@@ -510,110 +572,231 @@ export function AdminDashboard() {
                               popup: { ...draft.popup, gambarPoster: e.target.value },
                             })
                           }
-                          placeholder="Atau masukkan link gambar (misal: /images/baladz/raw-PAUDQ-1.jpg)"
+                          placeholder="Atau masukkan URL / path gambar poster"
                           className="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-semibold mb-1 text-stone-700">Teks Tombol CTA</label>
-                        <input
-                          type="text"
-                          value={draft.popup.teksCta}
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              popup: { ...draft.popup, teksCta: e.target.value },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold mb-1 text-stone-700">Teks Tombol Tutup</label>
-                        <input
-                          type="text"
-                          value={draft.popup.teksTutup}
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              popup: { ...draft.popup, teksTutup: e.target.value },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                        />
-                      </div>
-                    </div>
-
+                    {/* Link Tujuan Poster */}
                     <div>
-                      <label className="block font-semibold mb-1 text-stone-700">Link Tujuan Tombol CTA</label>
+                      <label className="block font-semibold mb-1 text-stone-700">
+                        Link Tujuan Poster / CTA <span className="text-stone-400 font-normal text-xs">(Opsional)</span>
+                      </label>
                       <input
                         type="text"
-                        value={draft.popup.linkCta}
+                        value={draft.popup.linkCta || ""}
                         onChange={(e) =>
                           setDraft({
                             ...draft,
                             popup: { ...draft.popup, linkCta: e.target.value },
                           })
                         }
-                        placeholder="Contoh: https://wa.me/6288222822233"
+                        placeholder="Contoh: https://wa.me/6288222822233 atau link formulir"
                         className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono text-xs"
                       />
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        💡 Jika diisi, pengunjung yang mengklik poster/tombol akan langsung diarahkan ke link ini.
+                      </p>
+                    </div>
+
+                    {/* Form Teks Opsional */}
+                    <div className="space-y-4 pt-3 border-t border-stone-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-stone-600 uppercase tracking-wider">
+                          Teks Pengumuman & Tombol (Opsional)
+                        </span>
+                        {draft.popup.modeTampilan === "gambar_saja" && (
+                          <span className="text-[10px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
+                            Boleh dikosongkan untuk mode poster
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold mb-1 text-stone-700">
+                          Judul Pengumuman <span className="text-stone-400 font-normal text-xs">(Opsional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={draft.popup.judul || ""}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              popup: { ...draft.popup, judul: e.target.value },
+                            })
+                          }
+                          placeholder="Contoh: Penerimaan Santri Baru TA 2027/2028 Dibuka!"
+                          className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold mb-1 text-stone-700">
+                          Pesan / Subjudul <span className="text-stone-400 font-normal text-xs">(Opsional)</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={draft.popup.subjudul || ""}
+                          onChange={(e) =>
+                            setDraft({
+                              ...draft,
+                              popup: { ...draft.popup, subjudul: e.target.value },
+                            })
+                          }
+                          placeholder="Pesan ajakan atau keterangan pengumuman..."
+                          className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-semibold mb-1 text-stone-700">
+                            Teks Tombol Aksi <span className="text-stone-400 font-normal text-xs">(Opsional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={draft.popup.teksCta || ""}
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                popup: { ...draft.popup, teksCta: e.target.value },
+                              })
+                            }
+                            placeholder="Contoh: Hubungi Panitia"
+                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold mb-1 text-stone-700">
+                            Teks Tombol Tutup <span className="text-stone-400 font-normal text-xs">(Opsional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={draft.popup.teksTutup || ""}
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                popup: { ...draft.popup, teksTutup: e.target.value },
+                              })
+                            }
+                            placeholder="Contoh: Lanjutkan ke Website"
+                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Preview Kanan (Mockup) */}
+                  {/* Preview Kanan (Mockup Real-Time) */}
                   <div className="md:col-span-5 space-y-2">
-                    <div className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center justify-between">
                       <span>👁️ Pratinjau Tampilan Pengunjung</span>
+                      <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">
+                        {draft.popup.modeTampilan === "gambar_saja" || (!draft.popup.judul && !draft.popup.subjudul)
+                          ? "Mode Poster Penuh"
+                          : "Mode Gambar + Teks"}
+                      </span>
                     </div>
 
-                    <div className="bg-stone-900/90 p-4 rounded-2xl shadow-inner flex items-center justify-center min-h-[420px]">
-                      <div className="bg-white rounded-2xl w-full max-w-xs overflow-hidden shadow-2xl relative border border-stone-200">
-                        {/* Close button fake */}
-                        <div className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center text-xs">
-                          ✕
-                        </div>
+                    <div className="bg-stone-900/90 p-4 rounded-2xl shadow-inner flex flex-col items-center justify-center min-h-[460px]">
+                      {draft.popup.modeTampilan === "gambar_saja" || (!draft.popup.judul && !draft.popup.subjudul) ? (
+                        /* Preview Mode 1: Full Poster */
+                        <div className="relative w-full max-w-xs animate-in fade-in duration-200">
+                          {/* Close button fake */}
+                          <div className="absolute -top-2.5 -right-2.5 z-20 w-7 h-7 rounded-full bg-stone-900 text-white flex items-center justify-center text-xs shadow-lg border border-white">
+                            ✕
+                          </div>
 
-                        {draft.popup.gambarPoster ? (
-                          <div className="relative h-36 w-full bg-stone-200">
-                            <Image
-                              src={draft.popup.gambarPoster}
-                              alt="Poster Preview"
-                              fill
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                            <span className="absolute bottom-2 left-2 text-[9px] bg-[#D97706] text-white px-2 py-0.5 rounded font-bold uppercase">
-                              Pengumuman
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="h-20 bg-emerald-800 text-white flex items-center justify-center text-xs">
-                            Tidak ada gambar poster
-                          </div>
-                        )}
-
-                        <div className="p-4 text-center space-y-2">
-                          <h4 className="font-serif font-bold text-sm text-[#0F4C3A] leading-tight line-clamp-2">
-                            {draft.popup.judul || "Judul Pengumuman"}
-                          </h4>
-                          <p className="text-[11px] text-stone-600 line-clamp-3 leading-relaxed">
-                            {draft.popup.subjudul || "Deskripsi pesan pengumuman..."}
-                          </p>
-                          <div className="pt-2 space-y-1.5">
-                            <div className="w-full bg-[#0F4C3A] text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1">
-                              <MessageCircle className="w-3 h-3" />
-                              <span>{draft.popup.teksCta || "Daftar via WhatsApp"}</span>
+                          {draft.popup.gambarPoster ? (
+                            <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-white/20">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={draft.popup.gambarPoster}
+                                alt="Poster Preview"
+                                className="w-full max-h-[320px] object-contain mx-auto"
+                              />
+                              {draft.popup.teksCta && (
+                                <div className="p-3 bg-white border-t border-stone-100">
+                                  <div className="w-full bg-[#0F4C3A] text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow">
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span>{draft.popup.teksCta}</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="text-[10px] text-stone-400">
-                              {draft.popup.teksTutup || "Lanjutkan ke Website"}
+                          ) : (
+                            <div className="h-56 bg-stone-800 text-stone-300 rounded-2xl flex flex-col items-center justify-center p-4 border border-dashed border-stone-600">
+                              <ImageIcon className="w-8 h-8 text-stone-500 mb-2" />
+                              <span className="text-xs">Belum ada gambar poster</span>
+                            </div>
+                          )}
+
+                          {draft.popup.linkCta && (
+                            <div className="mt-2 text-center text-[10px] text-emerald-400 font-medium">
+                              ✓ Poster dapat diklik menuju link tujuan
+                            </div>
+                          )}
+                          {!draft.popup.teksCta && (
+                            <div className="mt-2 text-center">
+                              <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-white/80 text-[10px]">
+                                {draft.popup.teksTutup || "Tutup Pengumuman ✕"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Preview Mode 2: Gambar + Teks */
+                        <div className="bg-white rounded-2xl w-full max-w-xs overflow-hidden shadow-2xl relative border border-stone-200 animate-in fade-in duration-200">
+                          {/* Close button fake */}
+                          <div className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center text-xs">
+                            ✕
+                          </div>
+
+                          {draft.popup.gambarPoster ? (
+                            <div className="relative h-32 w-full bg-stone-200">
+                              <Image
+                                src={draft.popup.gambarPoster}
+                                alt="Poster Preview"
+                                fill
+                                className="object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                              <span className="absolute bottom-2 left-2 text-[9px] bg-[#D97706] text-white px-2 py-0.5 rounded font-bold uppercase">
+                                Pengumuman
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="h-16 bg-emerald-800 text-white flex items-center justify-center text-xs">
+                              Tidak ada gambar poster
+                            </div>
+                          )}
+
+                          <div className="p-4 text-center space-y-2">
+                            {draft.popup.judul && (
+                              <h4 className="font-serif font-bold text-sm text-[#0F4C3A] leading-tight line-clamp-2">
+                                {draft.popup.judul}
+                              </h4>
+                            )}
+                            {draft.popup.subjudul && (
+                              <p className="text-[11px] text-stone-600 line-clamp-3 leading-relaxed">
+                                {draft.popup.subjudul}
+                              </p>
+                            )}
+                            <div className="pt-2 space-y-1.5">
+                              {draft.popup.teksCta && (
+                                <div className="w-full bg-[#0F4C3A] text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow">
+                                  <MessageCircle className="w-3 h-3" />
+                                  <span>{draft.popup.teksCta}</span>
+                                </div>
+                              )}
+                              <div className="text-[10px] text-stone-400">
+                                {draft.popup.teksTutup || "Lanjutkan ke Website"}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

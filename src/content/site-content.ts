@@ -52,12 +52,13 @@ export interface AlurPsbStep {
 
 export interface PopupSettings {
   aktif: boolean;
-  judul: string;
-  subjudul: string;
+  modeTampilan?: "gambar_saja" | "gambar_teks";
   gambarPoster: string;
-  teksCta: string;
-  linkCta: string;
-  teksTutup: string;
+  judul?: string;
+  subjudul?: string;
+  teksCta?: string;
+  linkCta?: string;
+  teksTutup?: string;
 }
 
 export interface BaladzSiteContent {
@@ -399,6 +400,7 @@ export const defaultSiteContent: BaladzSiteContent = {
 
   popup: {
     aktif: true,
+    modeTampilan: "gambar_teks",
     judul: "Penerimaan Santri Baru TA 2027/2028 Telah Dibuka!",
     subjudul: "Membina generasi berkarakter Qur'ani dengan bimbingan Asatidzah bersanad 30 Juz. Kuota sangat terbatas hanya 13 santri.",
     gambarPoster: "/images/baladz/raw-PAUDQ-1.jpg",

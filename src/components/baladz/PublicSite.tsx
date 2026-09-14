@@ -1291,64 +1291,153 @@ export function PublicSite() {
 
       {/* 9. POPUP PENGUMUMAN (Muncul di setiap halaman/tab, bisa di-close) */}
       {isPopupOpen && content.popup && content.popup.aktif && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-stone-200 relative animate-in fade-in zoom-in-95 duration-200">
-            {/* Tombol Close X */}
-            <button
-              onClick={() => setIsPopupOpen(false)}
-              className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors cursor-pointer"
-              aria-label="Tutup Pengumuman"
-            >
-              <X className="w-4 h-4" />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          {/* Cek mode: Full Gambar atau Gambar + Teks */}
+          {content.popup.modeTampilan === "gambar_saja" || (!content.popup.judul && !content.popup.subjudul) ? (
+            /* ============================================================ */
+            /* MODE 1: POSTER PENUH (FULL GAMBAR FLYER TANPA TEKS BERLEBIH) */
+            /* ============================================================ */
+            <div className="relative max-w-lg w-full flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+              {/* Tombol Close X Floating */}
+              <button
+                onClick={() => setIsPopupOpen(false)}
+                className="absolute -top-3.5 -right-2 sm:-top-4 sm:-right-4 z-30 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-stone-900/90 hover:bg-black text-white flex items-center justify-center transition-all hover:scale-110 shadow-2xl border-2 border-white cursor-pointer"
+                aria-label="Tutup Pengumuman"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            {/* Poster Banner */}
-            {content.popup.gambarPoster && (
-              <div className="relative h-52 w-full bg-stone-100">
-                <Image
-                  src={content.popup.gambarPoster}
-                  alt={content.popup.judul}
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-3 left-4 right-4">
-                  <span className="inline-block px-2.5 py-1 rounded bg-[#D97706] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
-                    Pengumuman Baladz
-                  </span>
-                </div>
+              {/* Box Poster */}
+              <div className="w-full bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/20">
+                {content.popup.linkCta ? (
+                  <a
+                    href={content.popup.linkCta}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setIsPopupOpen(false)}
+                    className="block group relative cursor-pointer"
+                    title="Klik untuk info lebih lanjut"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={content.popup.gambarPoster}
+                      alt={content.popup.judul || "Pengumuman Baladz"}
+                      className="w-full max-h-[75vh] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
+                  </a>
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={content.popup.gambarPoster}
+                    alt={content.popup.judul || "Pengumuman Baladz"}
+                    className="w-full max-h-[75vh] object-contain mx-auto"
+                  />
+                )}
+
+                {/* Tombol CTA Opsional di bawah poster */}
+                {content.popup.teksCta && (
+                  <div className="p-3.5 bg-white border-t border-stone-100 flex flex-col items-center gap-2">
+                    <a
+                      href={content.popup.linkCta || "#"}
+                      target={content.popup.linkCta ? "_blank" : undefined}
+                      rel="noreferrer"
+                      onClick={() => setIsPopupOpen(false)}
+                      className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 px-4 rounded-xl font-bold text-xs sm:text-sm shadow flex items-center justify-center gap-2 transition-transform hover:scale-[1.01]"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{content.popup.teksCta}</span>
+                    </a>
+                    {content.popup.teksTutup && (
+                      <button
+                        onClick={() => setIsPopupOpen(false)}
+                        className="text-xs font-medium text-stone-400 hover:text-stone-700 transition-colors cursor-pointer py-0.5"
+                      >
+                        {content.popup.teksTutup}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* Konten Popup */}
-            <div className="p-6 text-center space-y-3">
-              <h3 className="font-serif font-bold text-xl text-[#0F4C3A] leading-snug">
-                {content.popup.judul}
-              </h3>
-              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-                {content.popup.subjudul}
-              </p>
-
-              <div className="pt-3 space-y-2">
-                <a
-                  href={content.popup.linkCta}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => setIsPopupOpen(false)}
-                  className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 px-4 rounded-xl font-bold text-xs sm:text-sm shadow flex items-center justify-center gap-2 transition-transform hover:scale-[1.01]"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{content.popup.teksCta}</span>
-                </a>
+              {/* Tombol Tutup Di Bawah Modal jika tidak ada tombol CTA */}
+              {!content.popup.teksCta && (
                 <button
                   onClick={() => setIsPopupOpen(false)}
-                  className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
+                  className="mt-3 text-xs sm:text-sm font-semibold text-white/90 hover:text-white transition-colors cursor-pointer py-1.5 px-4 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-xs"
                 >
-                  {content.popup.teksTutup || "Lanjutkan ke Website"}
+                  {content.popup.teksTutup || "Tutup Pengumuman ✕"}
                 </button>
+              )}
+            </div>
+          ) : (
+            /* ============================================================ */
+            /* MODE 2: GAMBAR + TEKS KETERANGAN                             */
+            /* ============================================================ */
+            <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-stone-200 relative animate-in fade-in zoom-in-95 duration-200">
+              {/* Tombol Close X */}
+              <button
+                onClick={() => setIsPopupOpen(false)}
+                className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Tutup Pengumuman"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Poster Banner */}
+              {content.popup.gambarPoster && (
+                <div className="relative h-52 w-full bg-stone-100">
+                  <Image
+                    src={content.popup.gambarPoster}
+                    alt={content.popup.judul || "Pengumuman"}
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-3 left-4 right-4">
+                    <span className="inline-block px-2.5 py-1 rounded bg-[#D97706] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
+                      Pengumuman Baladz
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Konten Popup */}
+              <div className="p-6 text-center space-y-3">
+                {content.popup.judul && (
+                  <h3 className="font-serif font-bold text-xl text-[#0F4C3A] leading-snug">
+                    {content.popup.judul}
+                  </h3>
+                )}
+                {content.popup.subjudul && (
+                  <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                    {content.popup.subjudul}
+                  </p>
+                )}
+
+                <div className="pt-3 space-y-2">
+                  {content.popup.teksCta && (
+                    <a
+                      href={content.popup.linkCta || "#"}
+                      target={content.popup.linkCta ? "_blank" : undefined}
+                      rel="noreferrer"
+                      onClick={() => setIsPopupOpen(false)}
+                      className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 px-4 rounded-xl font-bold text-xs sm:text-sm shadow flex items-center justify-center gap-2 transition-transform hover:scale-[1.01]"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{content.popup.teksCta}</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setIsPopupOpen(false)}
+                    className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
+                  >
+                    {content.popup.teksTutup || "Lanjutkan ke Website"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
