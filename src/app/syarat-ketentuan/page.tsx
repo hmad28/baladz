@@ -20,17 +20,18 @@ export default function TermsPage() {
           </p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-              Pendaftaran santri baru mengikuti jadwal resmi yang ditetapkan panitia ({`1 Februari s/d 15 Juni 2027`}) atau sampai kuota 13 santri terpenuhi.
+              Pendaftaran santri baru mengikuti jadwal resmi per gelombang dan per jenjang yang telah dikonfirmasi oleh tim Baladz.
             </li>
             <li>
-              Kelulusan calon santri ditentukan berdasarkan hasil tes seleksi tilawah, daya ingat hafalan, serta wawancara kesiapan orang tua/wali santri.
+              Mekanisme seleksi, persyaratan, dan keputusan penerimaan mengikuti informasi terbaru yang disampaikan tim Baladz kepada pendaftar.
             </li>
             <li>
-              Biaya pendaftaran sebesar Rp 150.000,- tidak dapat ditarik kembali setelah proses verifikasi berkas berjalan.
+              Nominal dan ketentuan pembayaran harus dikonfirmasi terlebih dahulu melalui WhatsApp resmi Baladz sebelum melakukan transfer.
             </li>
             <li>
               Pelunasan biaya daftar ulang dilakukan sebelum batas waktu yang ditentukan. Keterlambatan tanpa konfirmasi dianggap pengunduran diri.
             </li>
+            <li>Bukti transfer diperiksa manual oleh tim Baladz. Pengiriman bukti tidak berarti pembayaran sudah otomatis terverifikasi.</li>
           </ul>
         </div>
       </article>

@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bell,
-  BookOpen,
   CheckCircle2,
   DollarSign,
   ExternalLink,
@@ -32,7 +31,7 @@ import {
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
 import { UploadButton } from "@/lib/uploadthing";
-import { type BeritaKabar, type KajianArtikel } from "@/content/site-content";
+import { type BeritaKabar } from "@/content/site-content";
 
 interface PendaftarRow {
   id: number;
@@ -46,11 +45,21 @@ interface PendaftarRow {
   created_at: string;
 }
 
+const pendaftarStatuses = [
+  "Pendaftar masuk — belum ditindaklanjuti",
+  "Sudah dihubungi",
+  "Berkas diterima",
+  "Bukti transfer diperiksa manual",
+  "Seleksi dijadwalkan",
+  "Diterima",
+  "Tidak dilanjutkan",
+] as const;
+
 export function AdminDashboard() {
   const router = useRouter();
   const { draft, setDraft, save, reset, savedAt, isSaving } = useSiteContent();
 
-  const [activeMenu, setActiveMenu] = useState<"overview" | "popup" | "pendaftar" | "psb" | "jenjang" | "kabar" | "kajian" | "kontak">("overview");
+  const [activeMenu, setActiveMenu] = useState<"overview" | "popup" | "pendaftar" | "psb" | "jenjang" | "kabar" | "kontak">("overview");
 
   // State pendaftar dari Neon DB
   const [pendaftarList, setPendaftarList] = useState<PendaftarRow[]>([]);
@@ -129,22 +138,12 @@ export function AdminDashboard() {
   // View mode untuk Kabar: null (tampilan list), "new" (halaman tambah baru), number (halaman edit detail)
   const [kabarView, setKabarView] = useState<number | "new" | null>(null);
 
-  // View mode untuk Kajian: null (tampilan list), "new" (halaman tambah baru), number (halaman edit detail)
-  const [kajianView, setKajianView] = useState<number | "new" | null>(null);
-
   // State tambah kabar baru
   const [newKabarJudul, setNewKabarJudul] = useState("");
   const [newKabarKategori, setNewKabarKategori] = useState("Kegiatan Santri");
   const [newKabarRingkasan, setNewKabarRingkasan] = useState("");
   const [newKabarIsi, setNewKabarIsi] = useState("");
   const [newKabarGambar, setNewKabarGambar] = useState("/images/baladz/gallery-outdoor.jpg");
-
-  // State tambah kajian baru
-  const [newKajianJudul, setNewKajianJudul] = useState("");
-  const [newKajianKategori, setNewKajianKategori] = useState("Parenting Qur'ani");
-  const [newKajianPenulis, setNewKajianPenulis] = useState("Asatidzah Baladz");
-  const [newKajianRingkasan, setNewKajianRingkasan] = useState("");
-  const [newKajianIsi, setNewKajianIsi] = useState("");
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -238,27 +237,6 @@ export function AdminDashboard() {
     setNewKabarRingkasan("");
     setNewKabarIsi("");
     showToast("Berita baru berhasil ditambahkan!");
-  };
-
-  // Tambah Kajian
-  const handleCreateKajian = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newKajianJudul) return;
-    const item: KajianArtikel = {
-      id: "kajian-" + Date.now(),
-      judul: newKajianJudul,
-      kategori: newKajianKategori,
-      ringkasan: newKajianRingkasan,
-      isiLengkap: newKajianIsi.split("\n\n").filter(Boolean),
-      penulis: newKajianPenulis,
-      tanggal: new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date()),
-    };
-    setDraft({ ...draft, kajian: [item, ...draft.kajian] });
-    setKajianView(null);
-    setNewKajianJudul("");
-    setNewKajianRingkasan("");
-    setNewKajianIsi("");
-    showToast("Kajian baru berhasil ditambahkan!");
   };
 
   return (
@@ -461,22 +439,6 @@ export function AdminDashboard() {
                 <span className="text-[10px] text-stone-400">{draft.kabar.length}</span>
               </button>
 
-              {/* TAB 6: KAJIAN */}
-              <button
-                onClick={() => setActiveMenu("kajian")}
-                className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "kajian"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-4 h-4 text-emerald-400" />
-                  <span>Kajian Islami</span>
-                </div>
-                <span className="text-[10px] text-stone-400">{draft.kajian.length}</span>
-              </button>
-
               {/* TAB 7: KONTAK & MEDSOS */}
               <button
                 onClick={() => setActiveMenu("kontak")}
@@ -509,7 +471,7 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="grid sm:grid-cols-3 gap-4">
                   <button onClick={() => setActiveMenu("pendaftar")} className="rounded-2xl border border-stone-200 bg-white p-5 text-left hover:border-blue-300 hover:shadow-sm cursor-pointer">
                     <Users className="w-5 h-5 text-blue-600" /><p className="mt-4 text-2xl font-bold text-stone-900">{pendaftarList.length}</p><p className="text-xs text-stone-500">Pendaftar masuk</p>
                   </button>
@@ -518,9 +480,6 @@ export function AdminDashboard() {
                   </button>
                   <button onClick={() => setActiveMenu("kabar")} className="rounded-2xl border border-stone-200 bg-white p-5 text-left hover:border-orange-300 hover:shadow-sm cursor-pointer">
                     <Newspaper className="w-5 h-5 text-orange-600" /><p className="mt-4 text-2xl font-bold text-stone-900">{draft.kabar.length}</p><p className="text-xs text-stone-500">Kabar terbit</p>
-                  </button>
-                  <button onClick={() => setActiveMenu("kajian")} className="rounded-2xl border border-stone-200 bg-white p-5 text-left hover:border-emerald-300 hover:shadow-sm cursor-pointer">
-                    <BookOpen className="w-5 h-5 text-emerald-600" /><p className="mt-4 text-2xl font-bold text-stone-900">{draft.kajian.length}</p><p className="text-xs text-stone-500">Artikel kajian</p>
                   </button>
                 </div>
 
@@ -539,6 +498,32 @@ export function AdminDashboard() {
                         <p className="text-sm font-bold text-stone-800">{item.label}</p><p className="mt-1 text-xs text-stone-500">{item.detail}</p>
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+                  <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Catatan internal</p>
+                  <h3 className="mt-1 text-lg font-serif font-bold text-[#0F4C3A]">Sumber & status verifikasi konten</h3>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {Object.entries(draft.sourceNotes).map(([key, note]) => (
+                      <label key={key} className="block rounded-xl bg-stone-50 p-4 text-xs">
+                        <span className="mb-2 block font-bold capitalize text-stone-700">{key}</span>
+                        <textarea rows={3} value={note} onChange={(e) => setDraft({ ...draft, sourceNotes: { ...draft.sourceNotes, [key]: e.target.value } })} className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-600" />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-stone-200 pt-5">
+                  <h3 className="mb-3 text-sm font-bold text-stone-800">Teks tombol & pesan WhatsApp</h3>
+                  <div className="grid gap-4 text-xs sm:grid-cols-2">
+                    {([
+                      ["teksDaftar", "Teks tombol pendaftaran"],
+                      ["teksWhatsapp", "Teks tombol WhatsApp"],
+                      ["teksKunjungan", "Teks tombol kunjungan"],
+                    ] as const).map(([field, label]) => <label key={field}><span className="mb-1 block font-semibold text-stone-700">{label}</span><input value={draft.cta[field]} onChange={(e) => setDraft({ ...draft, cta: { ...draft.cta, [field]: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2" /></label>)}
+                    <label className="sm:col-span-2"><span className="mb-1 block font-semibold text-stone-700">Pesan konsultasi</span><textarea rows={2} value={draft.cta.pesanWhatsapp} onChange={(e) => setDraft({ ...draft, cta: { ...draft.cta, pesanWhatsapp: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2" /></label>
+                    <label className="sm:col-span-2"><span className="mb-1 block font-semibold text-stone-700">Pesan kunjungan</span><textarea rows={2} value={draft.cta.pesanKunjungan} onChange={(e) => setDraft({ ...draft, cta: { ...draft.cta, pesanKunjungan: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2" /></label>
                   </div>
                 </div>
               </div>
@@ -778,7 +763,7 @@ export function AdminDashboard() {
                         </span>
                       </div>
                       <p className="text-[11px] text-stone-600 leading-relaxed">
-                        Saat pengunjung mengklik poster atau tombol aksi, WhatsApp otomatis terbuka dengan nomor dan pesan awal yang sudah siap dikirim (tidak perlu repot mengetik link):
+                        Nomor mengikuti Pengaturan Kontak agar semua CTA selalu konsisten. WhatsApp terbuka dengan pesan siap kirim, tetapi pengunjung tetap harus menekan tombol Kirim.
                       </p>
 
                       <div className="grid sm:grid-cols-2 gap-3">
@@ -786,18 +771,7 @@ export function AdminDashboard() {
                           <label className="block font-semibold mb-1 text-stone-700">
                             Nomor WhatsApp Panitia / Admin
                           </label>
-                          <input
-                            type="text"
-                            value={draft.popup.nomorWaCta || draft.kontak.whatsappUtama}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                popup: { ...draft.popup, nomorWaCta: e.target.value },
-                              })
-                            }
-                            placeholder="Contoh: 088222822233"
-                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono text-xs bg-white"
-                          />
+                          <div className="w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2 font-mono text-xs text-stone-700">{draft.kontak.whatsappUtama}</div>
                         </div>
 
                         <div className="sm:col-span-2">
@@ -823,25 +797,6 @@ export function AdminDashboard() {
                         </div>
                       </div>
 
-                      <details className="text-xs pt-1">
-                        <summary className="text-stone-500 hover:text-stone-800 cursor-pointer text-[11px] font-medium">
-                          Ingin gunakan link halaman website/formulir eksternal? (Opsi Lanjutan)
-                        </summary>
-                        <div className="pt-2">
-                          <input
-                            type="text"
-                            value={draft.popup.linkCta || ""}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                popup: { ...draft.popup, linkCta: e.target.value },
-                              })
-                            }
-                            placeholder="Kosongkan jika ingin WhatsApp di atas, atau masukkan link https://..."
-                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono text-xs bg-white"
-                          />
-                        </div>
-                      </details>
                     </div>
 
                     {/* Form Teks Opsional */}
@@ -870,7 +825,7 @@ export function AdminDashboard() {
                               popup: { ...draft.popup, judul: e.target.value },
                             })
                           }
-                          placeholder="Contoh: Penerimaan Santri Baru TA 2027/2028 Dibuka!"
+                          placeholder="Contoh: Informasi PSB Sedang Diperbarui"
                           className="w-full px-3 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
                         />
                       </div>
@@ -1067,6 +1022,10 @@ export function AdminDashboard() {
                   </button>
                 </div>
 
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs leading-relaxed text-blue-900">
+                  Formulir yang tersimpan berarti data sudah masuk ke dashboard. WhatsApp hanya dibuka dengan pesan siap kirim; staf tetap perlu mengecek dan mencatat tindak lanjut melalui kolom status.
+                </div>
+
                 {/* Counter Cards */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
@@ -1074,15 +1033,15 @@ export function AdminDashboard() {
                     <div className="text-2xl font-bold text-emerald-950 mt-1">{pendaftarList.length}</div>
                   </div>
                   <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                    <div className="text-xs text-amber-800 font-semibold">Status Baru</div>
+                    <div className="text-xs text-amber-800 font-semibold">Perlu Ditindaklanjuti</div>
                     <div className="text-2xl font-bold text-amber-950 mt-1">
-                      {pendaftarList.filter((p) => p.status === "Baru").length}
+                      {pendaftarList.filter((p) => p.status === "Baru" || p.status.startsWith("Pendaftar masuk")).length}
                     </div>
                   </div>
                   <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
-                    <div className="text-xs text-blue-800 font-semibold">Diverifikasi / Lulus</div>
+                    <div className="text-xs text-blue-800 font-semibold">Sudah Ditindaklanjuti</div>
                     <div className="text-2xl font-bold text-blue-950 mt-1">
-                      {pendaftarList.filter((p) => p.status !== "Baru").length}
+                      {pendaftarList.filter((p) => p.status !== "Baru" && !p.status.startsWith("Pendaftar masuk")).length}
                     </div>
                   </div>
                 </div>
@@ -1138,11 +1097,8 @@ export function AdminDashboard() {
                                 onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                                 className="px-2 py-1 border border-stone-300 rounded text-xs bg-white font-medium"
                               >
-                                <option value="Baru">Baru</option>
-                                <option value="Diverifikasi">Diverifikasi</option>
-                                <option value="Lolos Berkas">Lolos Berkas</option>
-                                <option value="Lulus Tes">Lulus Tes</option>
-                                <option value="Batal">Batal</option>
+                                {!pendaftarStatuses.includes(item.status as (typeof pendaftarStatuses)[number]) && <option value={item.status}>{item.status} (status lama)</option>}
+                                {pendaftarStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
                               </select>
                             </td>
                             <td className="py-3 px-4 text-center">
@@ -1237,6 +1193,52 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950">
+                  <label className="flex items-center gap-2 font-bold">
+                    <input
+                      type="checkbox"
+                      checked={draft.psb.jadwalTerverifikasi}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, jadwalTerverifikasi: e.target.checked } })}
+                    />
+                    Jadwal dan tahun sudah dikonfirmasi untuk tayang final
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={draft.psb.catatanKonfirmasi}
+                    onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, catatanKonfirmasi: e.target.value } })}
+                    className="mt-3 w-full rounded-lg border border-amber-300 bg-white px-3 py-2"
+                    aria-label="Catatan konfirmasi PSB"
+                  />
+                </div>
+
+                <div className="border-t border-stone-200 pt-5">
+                  <h3 className="mb-3 text-sm font-bold text-stone-800">Timeline dua gelombang</h3>
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {draft.psb.gelombang.map((gelombang, index) => (
+                      <div key={gelombang.nama} className="space-y-3 rounded-xl bg-stone-50 p-4 text-xs">
+                        {(["nama", "pendaftaranBerkas", "seleksi", "pengumuman", "pelunasan"] as const).map((field) => (
+                          <label key={field} className="block">
+                            <span className="mb-1 block font-medium capitalize text-stone-600">{field === "pendaftaranBerkas" ? "Pendaftaran & berkas" : field}</span>
+                            <input
+                              value={gelombang[field]}
+                              onChange={(e) => {
+                                const gelombangBaru = [...draft.psb.gelombang];
+                                gelombangBaru[index] = { ...gelombangBaru[index], [field]: e.target.value };
+                                setDraft({ ...draft, psb: { ...draft.psb, gelombang: gelombangBaru } });
+                              }}
+                              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <label className="mt-4 block text-xs">
+                    <span className="mb-1 block font-medium text-stone-600">Pertemuan orang tua & pemberkasan</span>
+                    <input value={draft.psb.pertemuanOrangTua} onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, pertemuanOrangTua: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2" />
+                  </label>
+                </div>
+
                 <div className="pt-4 border-t border-stone-200">
                   <h3 className="font-bold text-stone-800 text-sm mb-3">Rekening Pembayaran Resmi Yayasan</h3>
                   <div className="grid sm:grid-cols-2 gap-4 text-xs sm:text-sm">
@@ -1304,7 +1306,7 @@ export function AdminDashboard() {
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Produk Pendidikan</span>
                   <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
-                    Biaya & Fasilitas 3 Jenjang Baladz
+                    Program Pendidikan & Kelas Al-Qur’an
                   </h2>
                 </div>
 
@@ -1314,6 +1316,12 @@ export function AdminDashboard() {
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-emerald-900">{item.nama}</span>
                         <span className="text-xs text-stone-500">{item.tingkat}</span>
+                      </div>
+
+                      <div className="grid gap-3 text-xs sm:grid-cols-2">
+                        <label className="block"><span className="mb-1 block font-medium text-stone-600">Nama program</span><input value={item.nama} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], nama: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
+                        <label className="block"><span className="mb-1 block font-medium text-stone-600">Jenis / tingkat</span><input value={item.tingkat} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], tingkat: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
+                        <label className="block sm:col-span-2"><span className="mb-1 block font-medium text-stone-600">Deskripsi</span><textarea rows={2} value={item.deskripsi} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], deskripsi: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
                       </div>
 
                       <div className="grid sm:grid-cols-2 gap-3 text-xs">
@@ -1385,6 +1393,23 @@ export function AdminDashboard() {
                           </div>
                         )}
                       </div>
+
+                      <label className="flex items-center gap-2 text-xs font-semibold text-stone-700">
+                        <input type="checkbox" checked={item.hargaTerverifikasi !== false} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], hargaTerverifikasi: e.target.checked }; setDraft({ ...draft, jenjang: updated }); }} />
+                        Harga program sudah dikonfirmasi dan boleh ditayangkan
+                      </label>
+
+                      {item.jadwal && (
+                        <label className="block text-xs"><span className="mb-1 block font-medium text-stone-600">Pilihan jadwal (satu baris per jadwal)</span><textarea rows={5} value={item.jadwal.join("\n")} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], jadwal: e.target.value.split("\n").filter(Boolean) }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
+                      )}
+
+                      {item.opsiBiaya && (
+                        <div className="grid gap-3 text-xs sm:grid-cols-2">
+                          {item.opsiBiaya.map((opsi, opsiIndex) => <label key={opsi.label}><span className="mb-1 block font-medium text-stone-600">{opsi.label}</span><input type="number" value={opsi.nominal} onChange={(e) => { const updated = [...draft.jenjang]; const opsiBiaya = [...(updated[idx].opsiBiaya || [])]; opsiBiaya[opsiIndex] = { ...opsiBiaya[opsiIndex], nominal: Number(e.target.value) }; updated[idx] = { ...updated[idx], opsiBiaya }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2 font-mono" /></label>)}
+                        </div>
+                      )}
+
+                      <details className="text-xs text-stone-500"><summary className="cursor-pointer font-semibold">Catatan sumber data</summary><textarea rows={2} value={item.sumber || ""} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], sumber: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="mt-2 w-full rounded border border-stone-300 bg-white px-3 py-2" /></details>
                     </div>
                   ))}
                 </div>
@@ -1774,324 +1799,6 @@ export function AdminDashboard() {
             )}
 
             {/* ======================================================= */}
-            {/* 6. KAJIAN ISLAMI (LIST VIEW + DEDICATED CREATE/EDIT VIEW)*/}
-            {/* ======================================================= */}
-            {activeMenu === "kajian" && (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
-                {/* 6A. VIEW: TAMBAH KAJIAN BARU (HALAMAN TERSENDIRI) */}
-                {kajianView === "new" && (
-                  <div className="space-y-5 animate-in fade-in duration-200">
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setKajianView(null)}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors cursor-pointer mb-2"
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Kembali ke Daftar Kajian</span>
-                      </button>
-                      <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A]">
-                        Tulis Artikel Kajian Baru
-                      </h2>
-                      <p className="text-xs text-stone-500 mt-0.5">
-                        Bagikan wawasan parenting Qur&apos;ani, adab penuntut ilmu, atau fikih keluarga
-                      </p>
-                    </div>
-
-                    <form onSubmit={handleCreateKajian} className="space-y-4 text-xs sm:text-sm">
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-700 mb-1">Judul Artikel Kajian *</label>
-                          <input
-                            type="text"
-                            required
-                            value={newKajianJudul}
-                            onChange={(e) => setNewKajianJudul(e.target.value)}
-                            placeholder="Contoh: Menumbuhkan Cinta Al-Qur'an pada Anak Sejak Dini"
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block font-semibold text-stone-700 mb-1">Kategori Kajian</label>
-                          <input
-                            type="text"
-                            value={newKajianKategori}
-                            onChange={(e) => setNewKajianKategori(e.target.value)}
-                            placeholder="Contoh: Parenting Qur'ani / Adab Santri"
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block font-semibold text-stone-700 mb-1">Nama Penulis / Pemateri</label>
-                          <input
-                            type="text"
-                            value={newKajianPenulis}
-                            onChange={(e) => setNewKajianPenulis(e.target.value)}
-                            placeholder="Contoh: Asatidzah Baladz / Ustadz Rahmat"
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-700 mb-1">Ringkasan Artikel *</label>
-                          <textarea
-                            rows={2}
-                            required
-                            value={newKajianRingkasan}
-                            onChange={(e) => setNewKajianRingkasan(e.target.value)}
-                            placeholder="Ringkasan inti sari kajian..."
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-700 mb-1">
-                            Isi Lengkap Kajian <span className="text-stone-400 font-normal text-xs">(Gunakan 2x Enter untuk pemisah paragraf)</span>
-                          </label>
-                          <textarea
-                            rows={8}
-                            value={newKajianIsi}
-                            onChange={(e) => setNewKajianIsi(e.target.value)}
-                            placeholder="Tuliskan isi lengkap artikel kajian di sini..."
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 bg-white leading-relaxed"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-3 border-t border-stone-100">
-                        <button
-                          type="button"
-                          onClick={() => setKajianView(null)}
-                          className="px-4 py-2 border border-stone-300 rounded-xl font-semibold text-stone-600 hover:bg-stone-100 cursor-pointer"
-                        >
-                          Batal
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#0c3f30] text-white font-bold rounded-xl shadow-xs cursor-pointer"
-                        >
-                          Simpan Artikel Kajian
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-
-                {/* 6B. VIEW: EDIT DETAIL KAJIAN (HALAMAN TERSENDIRI) */}
-                {typeof kajianView === "number" && draft.kajian[kajianView] && (
-                  <div className="space-y-5 animate-in fade-in duration-200">
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setKajianView(null)}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors cursor-pointer mb-2"
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Kembali ke Daftar Kajian</span>
-                      </button>
-                      <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A]">
-                        Edit Kajian: {draft.kajian[kajianView].judul}
-                      </h2>
-                    </div>
-
-                    <div className="space-y-4 text-xs sm:text-sm">
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-700 mb-1">Judul Artikel</label>
-                          <input
-                            type="text"
-                            value={draft.kajian[kajianView].judul}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[kajianView] = { ...updated[kajianView], judul: e.target.value };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block font-semibold text-stone-700 mb-1">Kategori</label>
-                          <input
-                            type="text"
-                            value={draft.kajian[kajianView].kategori}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[kajianView] = { ...updated[kajianView], kategori: e.target.value };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block font-semibold text-stone-700 mb-1">Nama Penulis / Pemateri</label>
-                          <input
-                            type="text"
-                            value={draft.kajian[kajianView].penulis}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[kajianView] = { ...updated[kajianView], penulis: e.target.value };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-700 mb-1">Ringkasan</label>
-                          <textarea
-                            rows={2}
-                            value={draft.kajian[kajianView].ringkasan}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[kajianView] = { ...updated[kajianView], ringkasan: e.target.value };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-stone-700 mb-1">Isi Lengkap Artikel (Paragraf)</label>
-                          <textarea
-                            rows={8}
-                            value={draft.kajian[kajianView].isiLengkap.join("\n\n")}
-                            onChange={(e) => {
-                              const updated = [...draft.kajian];
-                              updated[kajianView] = {
-                                ...updated[kajianView],
-                                isiLengkap: e.target.value.split("\n\n").filter(Boolean),
-                              };
-                              setDraft({ ...draft, kajian: updated });
-                            }}
-                            className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl bg-white leading-relaxed font-sans"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm("Hapus artikel kajian ini?")) {
-                              setDraft({ ...draft, kajian: draft.kajian.filter((_, i) => i !== kajianView) });
-                              setKajianView(null);
-                              showToast("Artikel kajian telah dihapus.");
-                            }
-                          }}
-                          className="px-3.5 py-2 text-red-600 hover:bg-red-50 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>Hapus Kajian Ini</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setKajianView(null);
-                            showToast("Perubahan kajian tersimpan!");
-                          }}
-                          className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#0c3f30] text-white font-bold rounded-xl shadow-xs cursor-pointer"
-                        >
-                          Selesai & Simpan
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 6C. VIEW: LIST TABEL/CARD KAJIAN (DEFAULT VIEW) */}
-                {kajianView === null && (
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Edukasi Islami</span>
-                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
-                          Daftar Artikel Kajian ({draft.kajian.length})
-                        </h2>
-                        <p className="text-xs text-stone-500 mt-0.5">
-                          Kelola artikel fiqih, parenting Qur&apos;ani, dan adab untuk orang tua santri
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setKajianView("new")}
-                        className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs cursor-pointer self-start sm:self-auto"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Tulis Kajian Baru</span>
-                      </button>
-                    </div>
-
-                    {draft.kajian.length === 0 ? (
-                      <div className="p-12 text-center border-2 border-dashed border-stone-200 rounded-2xl">
-                        <BookOpen className="w-10 h-10 text-stone-400 mx-auto mb-2" />
-                        <h3 className="font-bold text-stone-700 text-sm">Belum ada artikel kajian</h3>
-                        <p className="text-xs text-stone-400 mt-1">
-                          Klik tombol &quot;Tulis Kajian Baru&quot; untuk menambahkan materi edukasi.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-stone-200 border border-stone-200 rounded-2xl overflow-hidden bg-white">
-                        {draft.kajian.map((item, idx) => (
-                          <div
-                            key={item.id}
-                            className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50/80 transition-colors"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                                  {item.kategori}
-                                </span>
-                                <span className="text-[11px] text-stone-400">{item.tanggal}</span>
-                                <span className="text-[11px] text-stone-500 font-medium">Oleh: {item.penulis}</span>
-                              </div>
-                              <h4
-                                onClick={() => setKajianView(idx)}
-                                className="font-bold text-stone-900 text-sm hover:text-emerald-800 cursor-pointer line-clamp-1"
-                              >
-                                {item.judul}
-                              </h4>
-                              <p className="text-xs text-stone-500 line-clamp-1 mt-0.5">
-                                {item.ringkasan}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                              <button
-                                type="button"
-                                onClick={() => setKajianView(idx)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                                <span>Edit Detail</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm(`Hapus artikel kajian "${item.judul}"?`)) {
-                                    setDraft({ ...draft, kajian: draft.kajian.filter((_, i) => i !== idx) });
-                                    showToast("Artikel kajian telah dihapus.");
-                                  }
-                                }}
-                                className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                                title="Hapus Kajian"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ======================================================= */}
             {/* 7. KONTAK & YAYASAN                                     */}
             {/* ======================================================= */}
             {activeMenu === "kontak" && (
@@ -2105,7 +1812,7 @@ export function AdminDashboard() {
 
                 <div className="grid sm:grid-cols-2 gap-4 text-xs sm:text-sm">
                   <div>
-                    <label className="block font-semibold mb-1 text-stone-700">WhatsApp Utama (PSB)</label>
+                    <label className="block font-semibold mb-1 text-stone-700">WhatsApp Resmi (semua CTA)</label>
                     <input
                       type="text"
                       value={draft.kontak.whatsappUtama}
@@ -2113,21 +1820,6 @@ export function AdminDashboard() {
                         setDraft({
                           ...draft,
                           kontak: { ...draft.kontak, whatsappUtama: e.target.value },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold mb-1 text-stone-700">WhatsApp Kedua</label>
-                    <input
-                      type="text"
-                      value={draft.kontak.whatsappKedua}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          kontak: { ...draft.kontak, whatsappKedua: e.target.value },
                         })
                       }
                       className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"

@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
           <div className="relative z-10 flex flex-col items-center">
             <div className="w-16 h-16 rounded-2xl bg-white/10 p-2 border border-white/20 backdrop-blur-sm shadow-inner mb-4 flex items-center justify-center">
               <Image
-                src="/images/baladz/logo-kiri.png"
+                src="/images/baladz/logo.png"
                 alt="Logo Baladz"
                 width={48}
                 height={48}

@@ -13,7 +13,7 @@ import {
   type BaladzSiteContent,
 } from "@/content/site-content";
 
-const storageKey = "baladz-site-content-v3";
+const storageKey = "baladz-site-content-v5";
 
 interface SiteContentContextValue {
   content: BaladzSiteContent;
@@ -30,7 +30,7 @@ const SiteContentContext = createContext<SiteContentContextValue | null>(null);
 
 function mergeSiteContent(saved: Partial<BaladzSiteContent> | null | undefined): BaladzSiteContent {
   if (!saved) return defaultSiteContent;
-  return {
+  const merged: BaladzSiteContent = {
     ...defaultSiteContent,
     ...saved,
     popup: {
@@ -44,12 +44,51 @@ function mergeSiteContent(saved: Partial<BaladzSiteContent> | null | undefined):
     psb: {
       ...defaultSiteContent.psb,
       ...(saved.psb || {}),
+      rekeningPembayaran: {
+        ...defaultSiteContent.psb.rekeningPembayaran,
+        ...(saved.psb?.rekeningPembayaran || {}),
+      },
     },
     kontak: {
       ...defaultSiteContent.kontak,
       ...(saved.kontak || {}),
     },
+    cta: {
+      ...defaultSiteContent.cta,
+      ...(saved.cta || {}),
+    },
   };
+
+  // Migrasi satu kali: cegah cache/database lama menghidupkan kembali data PSB
+  // yang secara eksplisit telah diganti oleh tim Baladz.
+  if (!saved.contentVersion || saved.contentVersion < defaultSiteContent.contentVersion) {
+    return {
+      ...merged,
+      contentVersion: defaultSiteContent.contentVersion,
+      sourceNotes: defaultSiteContent.sourceNotes,
+      jenjang: defaultSiteContent.jenjang,
+      psb: defaultSiteContent.psb,
+      lembaga: {
+        ...merged.lembaga,
+        lokasiKbm: defaultSiteContent.lembaga.lokasiKbm,
+      },
+      kontak: {
+        ...merged.kontak,
+        whatsappUtama: defaultSiteContent.kontak.whatsappUtama,
+        whatsappKedua: defaultSiteContent.kontak.whatsappKedua,
+        telepon: defaultSiteContent.kontak.telepon,
+      },
+      popup: {
+        ...defaultSiteContent.popup,
+        aktif: merged.popup.aktif,
+        modeTampilan: merged.popup.modeTampilan,
+        nomorWaCta: defaultSiteContent.kontak.whatsappUtama,
+        linkCta: "",
+      },
+    };
+  }
+
+  return merged;
 }
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {

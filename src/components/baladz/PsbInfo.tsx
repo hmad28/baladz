@@ -2,149 +2,100 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  GraduationCap,
-  MessageCircle,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, GraduationCap, MessageCircle } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
 
 function formatRupiah(num: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(num);
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
 }
 
 export function PsbInfo() {
   const { content } = useSiteContent();
+  const whatsappUrl = `https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${encodeURIComponent("Assalamu'alaikum tim PSB Baladz, saya ingin menanyakan jadwal dan persyaratan pendaftaran terbaru.")}`;
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#1C2826] font-sans">
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="relative h-10 w-36">
-              <Image
-                src="/images/baladz/logo.png"
-                alt="Baladz Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-800 hover:text-emerald-950"
-          >
-            <ArrowLeft className="w-4 h-4" /> Kembali ke Beranda
-          </Link>
+      <header className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+          <Link href="/" className="relative h-10 w-36"><Image src="/images/baladz/logo.png" alt="Logo Baladz" fill className="object-contain" priority /></Link>
+          <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 sm:text-sm"><ArrowLeft className="h-4 w-4" /> Kembali ke beranda</Link>
         </div>
       </header>
 
-      {/* Hero Banner PSB */}
-      <section className="bg-gradient-to-b from-[#FAF6EE] to-white border-b border-stone-200 py-12 sm:py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-4">
-          <span className="inline-block px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-xs font-bold uppercase tracking-wider">
-            Penerimaan Santri Baru
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#0F4C3A]">
-            Informasi Pendaftaran Santri Baru {content.psb.tahunAjaran}
-          </h1>
-          <p className="text-stone-600 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
-            Baladil Huffaadz membuka kesempatan bagi <strong>{content.psb.kuotaSantri} calon santri baru</strong> untuk dididik dalam lingkungan Qur&apos;ani beradab dan bersanad 30 Juz.
-          </p>
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=Assalamu%27alaikum%20Panitia%20PSB%20Baladz%2C%20saya%20ingin%20mendaftar.`}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-6 py-3 rounded-lg font-bold text-sm shadow flex items-center gap-2"
-            >
-              <GraduationCap className="w-4 h-4" />
-              Daftar Sekarang via WhatsApp
-            </a>
-          </div>
+      <section className="border-b border-stone-200 bg-white py-12 sm:py-16">
+        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
+          <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#D97706]">Penerimaan santri baru</span>
+          <h1 className="mt-3 text-3xl font-serif font-bold tracking-tight text-[#0F4C3A] sm:text-4xl">Jadwal, biaya, dan tahapan PSB</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-stone-600 sm:text-base">Semua informasi pendaftaran dikumpulkan di halaman ini agar orang tua dapat memeriksa prosesnya tanpa membaca beranda yang panjang.</p>
+          {!content.psb.jadwalTerverifikasi && (
+            <div className="mx-auto mt-6 flex max-w-2xl items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-left text-sm text-amber-950">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" /><div><strong>Draft untuk review.</strong> {content.psb.catatanKonfirmasi}</div>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Rincian Alur & Biaya */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-12">
-        {/* Biaya Jenjang */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
-          <h2 className="font-serif font-bold text-xl text-[#0F4C3A]">
-            Rincian Biaya Daftar Ulang Berdasarkan Jenjang
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs sm:text-sm text-left">
-              <thead className="bg-emerald-50 text-emerald-950 uppercase text-[11px] font-bold border-b border-emerald-100">
-                <tr>
-                  <th className="py-3 px-4">Jenjang Level</th>
-                  <th className="py-3 px-4">Uang Pangkal</th>
-                  <th className="py-3 px-4">SPP / Syahriyah</th>
-                  <th className="py-3 px-4">Boarding (Asrama)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {content.jenjang.map((j) => (
-                  <tr key={j.id} className="hover:bg-stone-50">
-                    <td className="py-3.5 px-4 font-semibold text-stone-900">{j.nama}</td>
-                    <td className="py-3.5 px-4 text-stone-700">{formatRupiah(j.uangPangkal)}</td>
-                    <td className="py-3.5 px-4 text-emerald-800 font-medium">{formatRupiah(j.sppBulanan)}/bln</td>
-                    <td className="py-3.5 px-4 text-stone-600">
-                      {j.isBoardingTersedia && j.biayaBoarding ? `${formatRupiah(j.biayaBoarding)}/bln` : "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="p-3 bg-amber-50 rounded-lg text-xs text-amber-900 border border-amber-200">
-            <strong>Penting:</strong> Biaya daftar ulang ditransfer ke Rekening: <strong>{content.psb.rekeningPembayaran.nomorRekening}</strong> a.n. {content.psb.rekeningPembayaran.atasNama} sebelum batas waktu {content.psb.batasDaftarUlang}.
-          </div>
-        </div>
-
-        {/* Alur PSB */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
-          <h2 className="font-serif font-bold text-xl text-[#0F4C3A]">
-            Alur Pendaftaran (1 Februari – 15 Juni 2027)
-          </h2>
-          <div className="space-y-4">
-            {content.psb.alurPendaftaran.map((step) => (
-              <div key={step.nomor} className="flex gap-4 items-start">
-                <div className="w-8 h-8 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                  {step.nomor}
-                </div>
-                <div>
-                  <h3 className="font-bold text-stone-900 text-sm">{step.judul}</h3>
-                  <p className="text-xs text-stone-600 mt-0.5">{step.keterangan}</p>
-                </div>
-              </div>
+      <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 sm:py-14">
+        <section>
+          <div className="mb-5"><p className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Timeline terbaru</p><h2 className="mt-1 text-2xl font-serif font-bold text-[#0F4C3A]">Dua gelombang pendaftaran</h2></div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            {content.psb.gelombang.map((gelombang) => (
+              <article key={gelombang.nama} className="rounded-2xl bg-white p-6 ring-1 ring-stone-200">
+                <h3 className="text-lg font-bold text-[#0F4C3A]">{gelombang.nama}</h3>
+                <dl className="mt-4 space-y-3 text-sm">
+                  {[["Pendaftaran & berkas", gelombang.pendaftaranBerkas], ["Seleksi", gelombang.seleksi], ["Pengumuman", gelombang.pengumuman], ["Pelunasan", gelombang.pelunasan]].map(([label, value]) => (
+                    <div key={label} className="flex items-start justify-between gap-4 border-b border-stone-100 pb-3 last:border-0 last:pb-0"><dt className="text-stone-500">{label}</dt><dd className="text-right font-semibold text-stone-900">{value}</dd></div>
+                  ))}
+                </dl>
+              </article>
             ))}
           </div>
-        </div>
+          <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-950">{content.psb.pertemuanOrangTua}</div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-2xl bg-white p-6 ring-1 ring-stone-200 sm:p-8">
+            <h2 className="text-xl font-serif font-bold text-[#0F4C3A]">Biaya program</h2>
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-stone-200 text-xs text-stone-500"><tr><th className="py-3 pr-4">Program</th><th className="py-3">Biaya</th></tr></thead>
+                <tbody className="divide-y divide-stone-100">
+                  {content.jenjang.map((program) => (
+                    <tr key={program.id}>
+                      <td className="py-4 pr-4 font-semibold text-stone-900">{program.nama}</td>
+                      <td className="py-4 text-stone-700">
+                        {program.hargaTerverifikasi === false ? <span className="font-semibold text-amber-800">Menunggu konfirmasi</span> : program.opsiBiaya ? (
+                          <div className="space-y-1">{program.opsiBiaya.map((opsi) => <div key={opsi.label}>{opsi.label}: <strong>{formatRupiah(opsi.nominal)}/bulan</strong></div>)}</div>
+                        ) : <strong>{formatRupiah(program.sppBulanan)}/bulan</strong>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-[#0F4C3A] p-6 text-white sm:p-8">
+            <h2 className="text-xl font-serif font-bold">Pembayaran & verifikasi</h2>
+            <p className="mt-3 text-sm leading-relaxed text-emerald-100">Transfer hanya setelah mendapat arahan tim Baladz. Bukti transfer diperiksa manual dan tidak otomatis berstatus terverifikasi.</p>
+            <div className="mt-5 rounded-xl bg-white/10 p-4"><p className="text-xs text-emerald-200">Rekening terbaru</p><p className="mt-1 font-mono text-lg font-bold">{content.psb.rekeningPembayaran.nomorRekening}</p><p className="text-sm">a.n. {content.psb.rekeningPembayaran.atasNama}</p></div>
+            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#D97706] px-5 py-3 text-sm font-bold text-white"><MessageCircle className="h-4 w-4" /> Konfirmasi via WhatsApp</a>
+          </div>
+        </section>
+
+        <section className="rounded-2xl bg-white p-6 ring-1 ring-stone-200 sm:p-8">
+          <h2 className="text-xl font-serif font-bold text-[#0F4C3A]">Alur pendaftaran</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {content.psb.alurPendaftaran.map((step) => (
+              <div key={step.nomor} className="flex gap-3 rounded-xl bg-[#FAF8F5] p-4"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-800 text-xs font-bold text-white">{step.nomor}</div><div><h3 className="text-sm font-bold text-stone-900">{step.judul}</h3><p className="mt-1 text-xs leading-relaxed text-stone-600">{step.keterangan}</p></div></div>
+            ))}
+          </div>
+          <div className="mt-6 flex items-start gap-3 rounded-xl border border-stone-200 p-4 text-sm text-stone-600"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" /> Daftar dokumen dan ketentuan per jenjang masih menunggu konfirmasi final tim Baladz.</div>
+        </section>
       </div>
 
-      {/* Footer Banner */}
-      <section className="bg-[#0F4C3A] text-white py-12 text-center">
-        <div className="max-w-xl mx-auto px-4 space-y-3">
-          <h3 className="font-serif font-bold text-2xl">Butuh Panduan Pendaftaran?</h3>
-          <p className="text-xs sm:text-sm text-emerald-100">
-            Panitia PSB siap membimbing proses registrasi hingga selesai melalui WhatsApp.
-          </p>
-          <a
-            href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-2 bg-[#D97706] hover:bg-[#B45309] text-white px-5 py-2.5 rounded-lg font-bold text-xs shadow"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Hubungi Panitia PSB ({content.kontak.whatsappUtama})
-          </a>
-        </div>
+      <section className="bg-[#0F4C3A] py-11 text-center text-white">
+        <div className="mx-auto max-w-xl px-4"><h2 className="text-2xl font-serif font-bold">Perlu dibantu memilih program?</h2><p className="mt-2 text-sm text-emerald-100">Hubungi admin resmi Baladz di {content.kontak.whatsappUtama}.</p><a href={whatsappUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#0F4C3A]"><GraduationCap className="h-4 w-4" /> Tanya admin PSB</a></div>
       </section>
     </main>
   );

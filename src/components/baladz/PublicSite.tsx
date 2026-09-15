@@ -14,13 +14,12 @@ import {
   Menu,
   MessageCircle,
   Phone,
-  Search,
   Send,
   ShieldCheck,
   X,
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
-import { resolvePopupCtaUrl, type BeritaKabar, type KajianArtikel } from "@/content/site-content";
+import { resolvePopupCtaUrl, type BeritaKabar } from "@/content/site-content";
 
 // Helper formatter mata uang rupiah
 function formatRupiah(num: number): string {
@@ -34,8 +33,7 @@ function formatRupiah(num: number): string {
 export function PublicSite() {
   const { content } = useSiteContent();
 
-  // Tab utama (Sesuai 3 pilar Baladz: Beranda / Kabar Baladz / Kajian)
-  const [activeTab, setActiveTab] = useState<"beranda" | "kabar" | "kajian">("beranda");
+  const [activeTab, setActiveTab] = useState<"beranda" | "kabar">("beranda");
 
   // Popup cukup sekali per sesi agar tidak mengganggu saat pengunjung berpindah tab.
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -74,13 +72,11 @@ export function PublicSite() {
   const [formNamaWali, setFormNamaWali] = useState("");
   const [formNoWa, setFormNoWa] = useState("");
   const [formAlamat, setFormAlamat] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Modal baca artikel (Kabar atau Kajian)
+  // Modal baca Kabar Baladz
   const [activeKabarModal, setActiveKabarModal] = useState<BeritaKabar | null>(null);
-  const [activeKajianModal, setActiveKajianModal] = useState<KajianArtikel | null>(null);
-
-  // Search filter di tab kajian
-  const [kajianSearch, setKajianSearch] = useState("");
 
   // Jenjang kalkulator aktif
   const currentCalcJenjang = content.jenjang.find((j) => j.id === selectedJenjangId) || content.jenjang[0];
@@ -88,10 +84,12 @@ export function PublicSite() {
   // Submit form pendaftaran online ke Neon DB & WhatsApp resmi
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
+    const waWindow = window.open("about:blank", "_blank");
 
-    // 1. Simpan ke database Neon PostgreSQL
     try {
-      await fetch("/api/pendaftar", {
+      const response = await fetch("/api/pendaftar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,32 +101,28 @@ export function PublicSite() {
           alamat: formAlamat,
         }),
       });
-    } catch (err) {
-      console.warn("Gagal simpan ke DB pendaftar:", err);
-    }
+      if (!response.ok) throw new Error("Data pendaftar belum tersimpan");
 
-    // 2. Buka WhatsApp dengan pesan rapi ke panitia PSB
-    const pesan = `*PENDAFTARAN SANTRI BARU BALADZ ${content.psb.tahunAjaran}*%0A%0A`
+      const pesan = `*PENDAFTARAN SANTRI BARU BALADZ ${content.psb.tahunAjaran}*%0A%0A`
       + `*Nama Calon Santri:* ${encodeURIComponent(formNamaSantri)}%0A`
       + `*Tanggal Lahir / Usia:* ${encodeURIComponent(formTglLahir)}%0A`
       + `*Pilihan Jenjang:* ${encodeURIComponent(registerJenjang)}%0A`
       + `*Nama Orang Tua / Wali:* ${encodeURIComponent(formNamaWali)}%0A`
       + `*No. WhatsApp:* ${encodeURIComponent(formNoWa)}%0A`
       + `*Alamat Domisili:* ${encodeURIComponent(formAlamat)}%0A%0A`
-      + `Mohon informasi jadwal seleksi dan tahapan selanjutnya. Terima kasih.`;
+      + `Data saya sudah masuk melalui website. Mohon tindak lanjut informasi seleksi. Pesan ini belum terkirim sampai saya menekan tombol kirim di WhatsApp.`;
 
-    const waUrl = `https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${pesan}`;
-    window.open(waUrl, "_blank");
-    setIsRegisterModalOpen(false);
+      const waUrl = `https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${pesan}`;
+      if (waWindow) waWindow.location.href = waUrl;
+      else window.location.href = waUrl;
+      setIsRegisterModalOpen(false);
+    } catch {
+      waWindow?.close();
+      setSubmitError("Data belum berhasil disimpan. Periksa koneksi lalu coba lagi.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  // Filter artikel kajian
-  const filteredKajian = content.kajian.filter(
-    (k) =>
-      k.judul.toLowerCase().includes(kajianSearch.toLowerCase()) ||
-      k.ringkasan.toLowerCase().includes(kajianSearch.toLowerCase()) ||
-      k.kategori.toLowerCase().includes(kajianSearch.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#1C2826] flex flex-col font-sans">
@@ -202,24 +196,18 @@ export function PublicSite() {
                     priority
                   />
                 </div>
-                <span className="text-[10px] uppercase tracking-widest text-emerald-800 font-semibold mt-0.5">
-                  Baladill Huffaadz International School
+                <span className="max-w-[18rem] text-center text-[10px] uppercase tracking-[0.16em] leading-snug text-emerald-800 font-semibold mt-0.5">
+                  Baladill Huffaadz Home School
                 </span>
               </button>
             </div>
 
             {/* Kanan: Kontak & Lokasi Cepat */}
             <div className="flex items-center gap-4 text-xs order-3">
-              <a
-                href={content.kontak.googleMapsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 text-stone-600 hover:text-emerald-800 transition-colors"
-                title="Lokasi Google Maps"
-              >
+              <span className="flex items-center gap-1.5 text-stone-600" title="Area Ma’had Baladz">
                 <MapPin className="w-4 h-4 text-emerald-700" />
                 <span className="hidden lg:inline">Bandung</span>
-              </a>
+              </span>
               <a
                 href={`mailto:${content.kontak.email}`}
                 className="flex items-center gap-1.5 text-stone-600 hover:text-emerald-800 transition-colors"
@@ -243,7 +231,7 @@ export function PublicSite() {
         </div>
       </header>
 
-      {/* 2. NAVBAR UTAMA (3 Menu: Beranda, Kabar Baladz, Kajian + Tombol Daftar) */}
+      {/* 2. NAVBAR UTAMA */}
       <nav className="bg-[#0F4C3A] text-white shadow-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
@@ -275,19 +263,6 @@ export function PublicSite() {
               >
                 Kabar Baladz
               </button>
-              <button
-                onClick={() => {
-                  setActiveTab("kajian");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className={`px-5 py-2 rounded-md font-medium text-sm transition-colors cursor-pointer ${
-                  activeTab === "kajian"
-                    ? "bg-white text-[#0F4C3A] shadow font-bold"
-                    : "text-emerald-100 hover:bg-emerald-800/70 hover:text-white"
-                }`}
-              >
-                Kajian
-              </button>
             </div>
 
             {/* Tombol Aksi Cepat: Daftar Santri Baru */}
@@ -300,14 +275,14 @@ export function PublicSite() {
                 className="bg-[#D97706] hover:bg-[#B45309] text-white px-4 py-2 rounded-md font-semibold text-xs sm:text-sm tracking-wide shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer"
               >
                 <GraduationCap className="w-4 h-4" />
-                <span>Daftar Santri Baru (PSB)</span>
+                <span>{content.cta.teksDaftar} (PSB)</span>
               </button>
             </div>
 
             {/* Mobile Hamburger Button */}
             <div className="flex md:hidden items-center justify-between w-full">
               <span className="font-serif font-bold text-sm tracking-wide text-amber-300">
-                {activeTab === "beranda" ? "Beranda & PSB" : activeTab === "kabar" ? "Kabar Baladz" : "Kajian Islami"}
+                {activeTab === "beranda" ? "Beranda & PSB" : "Kabar Baladz"}
               </span>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -347,18 +322,6 @@ export function PublicSite() {
             >
               Kabar Baladz
             </button>
-            <button
-              onClick={() => {
-                setActiveTab("kajian");
-                setMobileMenuOpen(false);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${
-                activeTab === "kajian" ? "bg-white text-[#0F4C3A] font-bold" : "text-emerald-100 hover:bg-emerald-800"
-              }`}
-            >
-              Kajian
-            </button>
             <div className="pt-2">
               <button
                 onClick={() => {
@@ -369,7 +332,7 @@ export function PublicSite() {
                 className="w-full bg-[#D97706] hover:bg-[#B45309] text-white py-2.5 px-4 rounded-md font-bold text-center text-sm shadow flex items-center justify-center gap-2"
               >
                 <GraduationCap className="w-4 h-4" />
-                Daftar Santri Baru (PSB)
+                {content.cta.teksDaftar} (PSB)
               </button>
             </div>
           </div>
@@ -391,7 +354,7 @@ export function PublicSite() {
                   <div className="lg:col-span-7 space-y-5">
                     <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold">
                       <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                      Penerimaan Santri Baru {content.psb.tahunAjaran} • Kuota {content.psb.kuotaSantri} Santri
+                      {content.psb.jadwalTerverifikasi ? `PSB ${content.psb.tahunAjaran}` : "Jadwal PSB sedang dikonfirmasi"}
                     </div>
 
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-[#0F4C3A] leading-tight">
@@ -408,16 +371,16 @@ export function PublicSite() {
                         className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white font-semibold px-6 py-3 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 text-sm sm:text-base cursor-pointer"
                       >
                         <GraduationCap className="w-5 h-5" />
-                        Daftar Santri Baru
+                        {content.cta.teksDaftar}
                       </button>
                       <a
-                        href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=Assalamu%27alaikum%20Panitia%20PSB%20Baladz%2C%20saya%20ingin%20konsultasi%20pendaftaran%20santri%20baru.`}
+                        href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${encodeURIComponent(content.cta.pesanWhatsapp)}`}
                         target="_blank"
                         rel="noreferrer"
                         className="bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 font-semibold px-5 py-3 rounded-lg transition-all flex items-center gap-2 text-sm sm:text-base"
                       >
                         <MessageCircle className="w-5 h-5 text-emerald-700" />
-                        Konsultasi WhatsApp
+                        {content.cta.teksWhatsapp}
                       </a>
                       <a
                         href="/psb"
@@ -438,8 +401,8 @@ export function PublicSite() {
                         <div className="text-sm font-bold text-emerald-900 mt-0.5">Baladz & Negara</div>
                       </div>
                       <div className="bg-white p-3 rounded-lg border border-stone-200 shadow-2xs">
-                        <div className="text-xs text-stone-500 font-medium">Kuota PSB</div>
-                        <div className="text-sm font-bold text-[#D97706] mt-0.5">{content.psb.kuotaSantri} Santri</div>
+                        <div className="text-xs text-stone-500 font-medium">Pilihan</div>
+                        <div className="text-sm font-bold text-[#D97706] mt-0.5">{content.jenjang.length} Program</div>
                       </div>
                     </div>
                   </div>
@@ -457,7 +420,7 @@ export function PublicSite() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-4 left-4 right-4 text-white">
                         <span className="text-[11px] bg-emerald-700/90 backdrop-blur-xs px-2.5 py-1 rounded font-semibold uppercase tracking-wider">
-                          Kampus Baladz Bandung
+                          Ma’had Baladz Bandung
                         </span>
                         <p className="text-sm font-medium mt-1">
                           Suasana belajar interaktif dan pendampingan Asatidzah bersanad
@@ -479,8 +442,8 @@ export function PublicSite() {
                       Pendidikan Al-Qur&apos;an yang terarah sejak usia dini
                     </h2>
                     <p className="mt-4 text-sm sm:text-base leading-relaxed text-stone-600">{content.lembaga.deskripsi}</p>
-                    <a href={content.kontak.googleMapsUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#0F4C3A] hover:text-[#D97706]">
-                      Lihat lokasi kampus <ArrowRight className="w-4 h-4" />
+                    <a href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${encodeURIComponent(content.cta.pesanKunjungan)}`} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#0F4C3A] hover:text-[#D97706]">
+                      Atur kunjungan ke Ma’had <ArrowRight className="w-4 h-4" />
                     </a>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-3">
@@ -499,7 +462,7 @@ export function PublicSite() {
                       <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#D97706]">Program Pendidikan</span>
                       <h2 className="mt-2 text-2xl sm:text-3xl font-serif font-bold text-[#0F4C3A]">Pilih program sesuai usia anak</h2>
                     </div>
-                    <p className="max-w-md text-sm text-stone-600">Bandingkan usia, fokus belajar, dan biaya tanpa membaca halaman panjang.</p>
+                    <p className="max-w-md text-sm text-stone-600">Jenjang sekolah serta kelas Al-Qur’an reguler dan privat dalam satu daftar.</p>
                   </div>
                   <div className="grid md:grid-cols-3 gap-5">
                     {content.jenjang.map((jenjang) => (
@@ -511,11 +474,19 @@ export function PublicSite() {
                         <div className="p-5">
                           <p className="text-[11px] font-bold uppercase tracking-wider text-[#D97706]">{jenjang.tingkat}</p>
                           <h3 className="mt-1 text-lg font-serif font-bold text-[#0F4C3A] leading-snug">{jenjang.nama}</h3>
-                          <p className="mt-2 text-sm leading-relaxed text-stone-600 line-clamp-3">{jenjang.deskripsi}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-stone-600">{jenjang.deskripsi}</p>
+                          {(jenjang.id === "smp-alquran" || jenjang.kategori === "kelas") && (
+                            <ul className="mt-3 space-y-1.5 text-xs text-stone-600">
+                              {(jenjang.jadwal || jenjang.keunggulan).map((item) => <li key={item}>• {item}</li>)}
+                            </ul>
+                          )}
                           <div className="mt-4 flex items-end justify-between gap-3 border-t border-stone-100 pt-4">
                             <div>
-                              <p className="text-[11px] text-stone-500">SPP mulai</p>
-                              <p className="font-bold text-stone-900">{formatRupiah(jenjang.sppBulanan)}<span className="text-xs font-normal text-stone-500">/bulan</span></p>
+                              <p className="text-[11px] text-stone-500">{jenjang.hargaTerverifikasi === false ? "Status harga" : "Biaya mulai"}</p>
+                              <p className="font-bold text-stone-900">
+                                {jenjang.hargaTerverifikasi === false ? "Menunggu konfirmasi" : `${formatRupiah(jenjang.sppBulanan)}/bulan`}
+                              </p>
+                              {jenjang.opsiBiaya?.map((opsi) => <p key={opsi.label} className="mt-1 text-[11px] text-stone-500">{opsi.label}: {formatRupiah(opsi.nominal)}</p>)}
                             </div>
                             <button onClick={() => { setRegisterJenjang(jenjang.nama); setIsRegisterModalOpen(true); }} className="inline-flex items-center gap-1 text-sm font-bold text-[#0F4C3A] hover:text-[#D97706] cursor-pointer">
                               Pilih <ArrowRight className="w-4 h-4" />
@@ -530,11 +501,11 @@ export function PublicSite() {
                 <div className="rounded-2xl bg-[#0F4C3A] p-6 sm:p-8 text-white grid lg:grid-cols-[1fr_auto] gap-6 items-center">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-300">
-                      <span>PSB {content.psb.tahunAjaran}</span>
-                      <span className="rounded-full bg-white/10 px-2 py-1">{content.psb.statusPendaftaran}</span>
+                      <span>Informasi PSB</span>
+                      <span className="rounded-full bg-white/10 px-2 py-1">Perlu konfirmasi</span>
                     </div>
-                    <h2 className="mt-2 text-2xl font-serif font-bold">Pendaftaran santri baru sedang dibuka</h2>
-                    <p className="mt-2 text-sm leading-relaxed text-emerald-100">{content.psb.tanggalBuka}—{content.psb.tanggalTutup} · Kuota {content.psb.kuotaSantri} santri · Formulir {formatRupiah(content.psb.biayaPendaftaran)}</p>
+                    <h2 className="mt-2 text-2xl font-serif font-bold">Cek jadwal dan tahapan pendaftaran</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-emerald-100">Timeline dua gelombang sudah disiapkan sebagai draft. Tahun dan penerapan per jenjang belum dipublikasikan sebagai informasi final.</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <Link href="/psb" className="rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#0F4C3A] hover:bg-amber-50">Lihat info PSB</Link>
@@ -557,16 +528,26 @@ export function PublicSite() {
                     </div>
                   </div>
                   <div>
-                    <div className="mb-4 flex items-end justify-between gap-3">
-                      <div><p className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Kajian</p><h2 className="mt-1 text-xl font-serif font-bold text-[#0F4C3A]">Bacaan untuk orang tua</h2></div>
-                      <button onClick={() => setActiveTab("kajian")} className="text-sm font-bold text-[#0F4C3A] cursor-pointer">Lihat semua</button>
+                    <div className="mb-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Kunjungi Ma’had Baladz</p>
+                      <h2 className="mt-1 text-xl font-serif font-bold text-[#0F4C3A]">Tanya program atau atur survei</h2>
+                      <p className="mt-2 text-sm text-stone-600">Tim Baladz akan membantu memilih lokasi dan waktu kunjungan yang sesuai.</p>
                     </div>
                     <div className="space-y-3">
-                      {content.kajian.slice(0, 2).map((item) => (
-                        <button key={item.id} onClick={() => setActiveKajianModal(item)} className="w-full rounded-xl border border-stone-200 p-4 text-left hover:border-emerald-300 hover:bg-emerald-50/30 cursor-pointer">
-                          <p className="text-xs text-stone-500">{item.tanggal} · {item.kategori}</p><h3 className="mt-1 font-bold text-stone-900 line-clamp-2">{item.judul}</h3>
-                        </button>
+                      {content.lembaga.lokasiKbm.filter((lokasi) => lokasi.dapatDikunjungi).map((lokasi) => (
+                        <div key={lokasi.nama} className="rounded-xl border border-stone-200 p-4">
+                          <h3 className="font-bold text-stone-900">{lokasi.nama}</h3>
+                          <p className="mt-1 text-xs text-stone-500">{lokasi.alamat}</p>
+                        </div>
                       ))}
+                      <a
+                        href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${encodeURIComponent(content.cta.pesanKunjungan)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#0F4C3A] px-5 py-3 text-sm font-bold text-white hover:bg-[#0c3f30]"
+                      >
+                        <MessageCircle className="w-4 h-4" /> {content.cta.teksKunjungan}
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -606,7 +587,7 @@ export function PublicSite() {
                     <div>
                       <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Layanan Konsultasi</span>
                       <h3 className="font-serif font-bold text-emerald-950 text-base mt-1">
-                        Ingin Berkunjung ke Kampus?
+                        Ingin Berkunjung ke Ma’had?
                       </h3>
                       <p className="text-xs text-stone-600 mt-1">
                         Silakan hubungi WhatsApp panitia untuk penjadwalan survey lokasi dan konsultasi langsung.
@@ -623,17 +604,17 @@ export function PublicSite() {
                   </div>
                 </div>
 
-                {/* Fasilitas & Kampus KBM */}
+                {/* Fasilitas & Ma’had */}
                 <div className="bg-[#FAF8F5] rounded-2xl p-6 sm:p-8 border border-stone-200">
                   <h3 className="font-serif font-bold text-xl text-[#0F4C3A] mb-4 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-[#D97706]" />
-                    Lokasi Kampus & Sarana KBM Baladz
+                    Lokasi Ma’had & Sarana KBM Baladz
                   </h3>
                   <div className="grid md:grid-cols-3 gap-6">
                     {content.lembaga.lokasiKbm.map((lokasi, idx) => (
                       <div key={idx} className="bg-white p-5 rounded-xl border border-stone-200 shadow-2xs">
                         <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                          {idx === 2 ? "Rencana Pesantren" : `Kampus ${idx + 1}`}
+                          {idx === 2 ? "Rencana Pesantren" : `Ma’had ${idx + 1}`}
                         </span>
                         <h4 className="font-bold text-stone-900 text-base mt-2">{lokasi.nama}</h4>
                         <p className="text-xs text-stone-600 mt-1">{lokasi.alamat}</p>
@@ -928,7 +909,7 @@ export function PublicSite() {
                     <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs">
                       <h3 className="font-serif font-bold text-lg text-[#0F4C3A] flex items-center gap-2 mb-3">
                         <BookOpen className="w-5 h-5 text-emerald-700" />
-                        Materi Ujian Seleksi Offline
+                        Materi Seleksi
                       </h3>
                       <ul className="space-y-2 text-xs text-stone-700">
                         {content.psb.materiSeleksi.map((materi, idx) => (
@@ -939,7 +920,7 @@ export function PublicSite() {
                         ))}
                       </ul>
                       <div className="mt-4 pt-3 border-t border-stone-100 text-xs text-stone-500">
-                        Lokasi Tes: Kampus Baladz 1, Jl. Jatihandap Raya No. 7, RT.7/RW.5, Jatihandap, Bandung.
+                        Lokasi seleksi dan detail kunjungan mengikuti konfirmasi resmi tim Baladz.
                       </div>
                     </div>
 
@@ -1031,71 +1012,6 @@ export function PublicSite() {
           </section>
         )}
 
-        {/* ========================================================= */}
-        {/* TAB 3: KAJIAN (EDUKASI ISLAMI & PARENTING QUR'ANI)        */}
-        {/* ========================================================= */}
-        {activeTab === "kajian" && (
-          <section className="py-12 bg-[#FAF8F5]">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6">
-              <div className="mb-10 text-center max-w-2xl mx-auto space-y-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-[#D97706]">Edukasi & Inspirasi</span>
-                <h1 className="text-3xl font-serif font-bold text-[#0F4C3A]">Kajian Islami & Parenting</h1>
-                <p className="text-stone-600 text-sm">
-                  Artikel bermanfaat tentang sirah sahabat, tafsir nilai Qur’ani, dan bekal mendidik anak bagi orang tua.
-                </p>
-
-                {/* Input Search Kajian */}
-                <div className="pt-2 max-w-md mx-auto">
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-                    <input
-                      type="text"
-                      placeholder="Cari judul artikel kajian..."
-                      value={kajianSearch}
-                      onChange={(e) => setKajianSearch(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 text-sm border border-stone-300 rounded-full bg-white focus:outline-none focus:border-emerald-600 shadow-2xs"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Grid Kajian */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {filteredKajian.map((kajian) => (
-                  <article
-                    key={kajian.id}
-                    className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs hover:border-emerald-300 transition-all flex flex-col justify-between space-y-4"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between text-xs text-stone-400 mb-2">
-                        <span className="bg-emerald-50 text-emerald-800 font-semibold px-2.5 py-0.5 rounded border border-emerald-200">
-                          {kajian.kategori}
-                        </span>
-                        <span>{kajian.tanggal}</span>
-                      </div>
-                      <h2 className="font-serif font-bold text-xl text-[#0F4C3A] leading-snug mt-1">
-                        {kajian.judul}
-                      </h2>
-                      <p className="text-xs sm:text-sm text-stone-600 mt-2.5 leading-relaxed">
-                        {kajian.ringkasan}
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
-                      <span className="text-xs text-stone-500 italic">Oleh: {kajian.penulis}</span>
-                      <button
-                        onClick={() => setActiveKajianModal(kajian)}
-                        className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer"
-                      >
-                        Baca Artikel Lengkap →
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
       </main>
 
       {/* 4. FOOTER RESMI BALADZ */}
@@ -1117,7 +1033,7 @@ export function PublicSite() {
                 {content.lembaga.deskripsi}
               </p>
               <div className="pt-2 text-xs text-emerald-200">
-                Alamat: {content.kontak.alamatLengkap}
+                Alamat yayasan: {content.kontak.alamatLengkap}
               </div>
             </div>
 
@@ -1133,11 +1049,6 @@ export function PublicSite() {
                 <li>
                   <button onClick={() => setActiveTab("kabar")} className="hover:text-white cursor-pointer">
                     • Kabar dari Baladz
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => setActiveTab("kajian")} className="hover:text-white cursor-pointer">
-                    • Kajian Islami & Parenting
                   </button>
                 </li>
                 <li>
@@ -1158,7 +1069,6 @@ export function PublicSite() {
               <h5 className="font-bold text-amber-300 text-sm uppercase tracking-wider mb-2">Kontak Panitia PSB</h5>
               <div className="text-xs text-emerald-100 space-y-1.5">
                 <div>WhatsApp Utama: <strong>{content.kontak.whatsappUtama}</strong></div>
-                <div>WhatsApp Kedua: <strong>{content.kontak.whatsappKedua}</strong></div>
                 <div>Email: <strong>{content.kontak.email}</strong></div>
               </div>
 
@@ -1213,7 +1123,7 @@ export function PublicSite() {
                 Pendaftaran Santri Baru {content.psb.tahunAjaran}
               </h3>
               <p className="text-xs text-stone-500 mt-1">
-                Data akan langsung terhubung ke panitia PSB Baladz via WhatsApp untuk konfirmasi dan jadwal seleksi.
+                Data masuk ke dashboard staf terlebih dahulu. Setelah itu WhatsApp terbuka dengan pesan siap kirim.
               </p>
             </div>
 
@@ -1295,16 +1205,19 @@ export function PublicSite() {
               </div>
 
               <div className="p-3 bg-emerald-50 rounded-lg text-xs text-emerald-900 border border-emerald-200">
-                Setelah klik tombol di bawah, Anda akan diarahkan ke WhatsApp Panitia Baladz untuk verifikasi formulir dan pembayaran biaya pendaftaran Rp 150.000,-.
+                Membuka WhatsApp belum mengirim pesan. Periksa pesan yang sudah disiapkan, lalu tekan Kirim di WhatsApp agar tim Baladz dapat menindaklanjuti.
               </div>
+
+              {submitError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">{submitError}</p>}
 
               <div className="pt-2">
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 rounded-lg font-bold text-sm shadow flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
-                  Kirim Formulir via WhatsApp
+                  {isSubmitting ? "Menyimpan data..." : "Simpan Data & Buka WhatsApp"}
                 </button>
               </div>
             </form>
@@ -1362,49 +1275,7 @@ export function PublicSite() {
         </div>
       )}
 
-      {/* 8. MODAL BACA KAJIAN LENGKAP */}
-      {activeKajianModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl relative">
-            <button
-              onClick={() => setActiveKajianModal(null)}
-              className="absolute top-5 right-5 text-stone-400 hover:text-stone-700 p-1"
-              aria-label="Tutup"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <span className="text-xs font-semibold px-2.5 py-1 rounded bg-amber-100 text-amber-900">
-              {activeKajianModal.kategori}
-            </span>
-            <div className="text-xs text-stone-400 mt-2 mb-1">
-              {activeKajianModal.tanggal} • Penulis: {activeKajianModal.penulis}
-            </div>
-
-            <h2 className="font-serif font-bold text-2xl text-[#0F4C3A] leading-tight mt-1 mb-6">
-              {activeKajianModal.judul}
-            </h2>
-
-            <div className="space-y-4 text-stone-700 text-sm sm:text-base leading-relaxed">
-              {activeKajianModal.isiLengkap.map((paragraf, i) => (
-                <p key={i}>{paragraf}</p>
-              ))}
-            </div>
-
-            <div className="mt-8 pt-4 border-t border-stone-200 flex justify-between items-center">
-              <span className="text-xs text-stone-400">Yayasan Baladz Cerdas Mulia</span>
-              <button
-                onClick={() => setActiveKajianModal(null)}
-                className="px-5 py-2 rounded-lg bg-emerald-800 text-white font-semibold text-sm hover:bg-emerald-900"
-              >
-                Tutup Bacaan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 9. POPUP PENGUMUMAN (Muncul di setiap halaman/tab, bisa di-close) */}
+      {/* 8. POPUP PENGUMUMAN */}
       {isPopupOpen && content.popup && content.popup.aktif && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
           {(() => {

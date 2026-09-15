@@ -2,7 +2,8 @@
  * DATA KONTEN RESMI WEBSITE BALADZ
  * 
  * PANDUAN UPDATE KONTEN:
- * Anda dapat mengedit teks, harga, nomor kontak, jadwal PSB, berita, atau artikel kajian
+ * Konten publik dikelola melalui dashboard. Catatan sumber disimpan bersama
+ * data penting agar staf dapat memeriksa asal dan status verifikasinya.
  * langsung di file ini tanpa perlu mengubah kode komponen lainnya.
  * 
  * Cukup simpan file ini, maka website akan otomatis terupdate.
@@ -21,6 +22,11 @@ export interface JenjangPendidikan {
   keunggulan: string[];
   gambar: string;
   isBoardingTersedia: boolean;
+  kategori?: "jenjang" | "kelas";
+  jadwal?: string[];
+  opsiBiaya?: { label: string; nominal: number }[];
+  hargaTerverifikasi?: boolean;
+  sumber?: string;
 }
 
 export interface BeritaKabar {
@@ -34,20 +40,18 @@ export interface BeritaKabar {
   penulis: string;
 }
 
-export interface KajianArtikel {
-  id: string;
-  judul: string;
-  ringkasan: string;
-  isiLengkap: string[];
-  tanggal: string;
-  kategori: string;
-  penulis: string;
-}
-
 export interface AlurPsbStep {
   nomor: number;
   judul: string;
   keterangan: string;
+}
+
+export interface GelombangPsb {
+  nama: string;
+  pendaftaranBerkas: string;
+  seleksi: string;
+  pengumuman: string;
+  pelunasan: string;
 }
 
 export interface PopupSettings {
@@ -63,12 +67,9 @@ export interface PopupSettings {
   teksTutup?: string;
 }
 
-export function resolvePopupCtaUrl(popup?: PopupSettings, defaultWa: string = "088222822233"): string {
+export function resolvePopupCtaUrl(popup?: PopupSettings, defaultWa: string = "081234598187"): string {
   if (!popup) return `https://wa.me/62${defaultWa.replace(/^0/, "")}`;
-  if (popup.linkCta && (popup.linkCta.startsWith("http://") || popup.linkCta.startsWith("https://"))) {
-    return popup.linkCta;
-  }
-  const rawWa = popup.nomorWaCta || defaultWa;
+  const rawWa = defaultWa;
   const cleanWa = rawWa.replace(/[^0-9]/g, "");
   const formattedWa = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : cleanWa;
   const pesan = popup.pesanWaCta || "Assalamu'alaikum Panitia PSB Baladz, saya ingin menanyakan informasi pendaftaran santri baru.";
@@ -76,6 +77,8 @@ export function resolvePopupCtaUrl(popup?: PopupSettings, defaultWa: string = "0
 }
 
 export interface BaladzSiteContent {
+  contentVersion: number;
+  sourceNotes: Record<string, string>;
   // 1. Info Profil Lembaga & Pengumuman Utama
   lembaga: {
     nama: string;
@@ -87,6 +90,9 @@ export interface BaladzSiteContent {
       nama: string;
       alamat: string;
       status: string;
+      foto?: string;
+      dapatDikunjungi: boolean;
+      sumber: string;
     }[];
   };
 
@@ -99,6 +105,10 @@ export interface BaladzSiteContent {
     kuotaSantri: number;
     biayaPendaftaran: number;
     batasDaftarUlang: string;
+    jadwalTerverifikasi: boolean;
+    catatanKonfirmasi: string;
+    gelombang: GelombangPsb[];
+    pertemuanOrangTua: string;
     alurPendaftaran: AlurPsbStep[];
     syaratBerkas: string[];
     materiSeleksi: string[];
@@ -116,10 +126,7 @@ export interface BaladzSiteContent {
   // 4. Kabar Baladz (Warta & Update Lembaga)
   kabar: BeritaKabar[];
 
-  // 5. Kajian (Edukasi Islami & Parenting)
-  kajian: KajianArtikel[];
-
-  // 6. Kontak & Media Sosial Resmi
+  // 5. Kontak & Media Sosial Resmi
   kontak: {
     telepon: string;
     whatsappUtama: string;
@@ -135,11 +142,27 @@ export interface BaladzSiteContent {
     };
   };
 
+  cta: {
+    teksDaftar: string;
+    teksWhatsapp: string;
+    pesanWhatsapp: string;
+    teksKunjungan: string;
+    pesanKunjungan: string;
+  };
+
   // 7. Pengaturan Popup Pengumuman (Muncul di 3 Halaman)
   popup: PopupSettings;
 }
 
 export const defaultSiteContent: BaladzSiteContent = {
+  contentVersion: 5,
+  sourceNotes: {
+    profil: "Rujukan: baladz.net, diperiksa 15 September 2026.",
+    lokasi: "Rujukan: baladz.net. Alamat rinci dan foto kunjungan menunggu verifikasi tim Baladz.",
+    program: "PAUD/TK/SD: baladz.net. SMP, Reguler, dan Privat: catatan meeting tim Baladz.",
+    psb: "Catatan meeting tim Baladz. Tahun, penerapan per jenjang, dan biaya formulir belum final.",
+    kontak: "Nomor dan rekening terbaru diberikan langsung oleh tim Baladz.",
+  },
   lembaga: {
     nama: "Baladil Huffaadz (Baladz)",
     tagline: "Pendidikan Al-Qur’an Bersanad untuk Generasi Qur'ani",
@@ -155,31 +178,46 @@ export const defaultSiteContent: BaladzSiteContent = {
     ],
     lokasiKbm: [
       {
-        nama: "Kampus KBM 1 (Jatihandap)",
-        alamat: "Jalan Jatihandap Raya No. 7, RT.7/RW.5, Jatihandap, Bandung",
+        nama: "Ma’had Baladz Jatihandap",
+        alamat: "Jatihandap, Bandung",
         status: "Gedung 2 lantai di atas lahan 300m²",
+        foto: "/images/baladz/gallery-class.jpg",
+        dapatDikunjungi: true,
+        sumber: "baladz.net; alamat rinci perlu konfirmasi tim Baladz",
       },
       {
-        nama: "Kampus KBM 2 (Pasirlayung)",
-        alamat: "Jalan Pasirlayung Barat No. 44, Padasuka, Cimenyan, Kab. Bandung 40191",
+        nama: "Ma’had Baladz Pasirlayung Barat",
+        alamat: "Pasirlayung Barat, Bandung",
         status: "Gedung 2 lantai di atas lahan 200m²",
+        foto: "/images/baladz/about.jpg",
+        dapatDikunjungi: true,
+        sumber: "baladz.net; alamat rinci perlu konfirmasi tim Baladz",
       },
       {
-        nama: "Kampus Permanen Pesantren Baladz (Cipaheut)",
-        alamat: "Cipaheut, Cimenyan, Bandung (sekitar 3km dari Baladz 1)",
-        status: "Lahan wakaf 600m² siap bangun, proyeksi perluasan kawasan > 7.000m²",
+        nama: "Ma’had Baladz Permanen (Cipaheut)",
+        alamat: "Cipaheut, Cimenyan, Bandung",
+        status: "Masih dalam proses pembangunan",
+        dapatDikunjungi: false,
+        sumber: "baladz.net; detail pembangunan dan kunjungan perlu konfirmasi tim Baladz",
       },
     ],
   },
 
   psb: {
-    tahunAjaran: "TA 2027/2028",
-    statusPendaftaran: "Buka",
-    tanggalBuka: "1 Februari 2027",
-    tanggalTutup: "15 Juni 2027 (Pukul 23:59)",
-    kuotaSantri: 13,
-    biayaPendaftaran: 150000,
-    batasDaftarUlang: "10 Juli 2027",
+    tahunAjaran: "2026/2027 — perlu konfirmasi",
+    statusPendaftaran: "Tutup",
+    tanggalBuka: "10 September",
+    tanggalTutup: "31 Maret",
+    kuotaSantri: 0,
+    biayaPendaftaran: 0,
+    batasDaftarUlang: "10 Mei",
+    jadwalTerverifikasi: false,
+    catatanKonfirmasi: "Draft jadwal dari meeting. Konfirmasi tahun, penerapan per jenjang, kuota, dan biaya formulir sebelum ditayangkan final.",
+    gelombang: [
+      { nama: "Gelombang 1", pendaftaranBerkas: "10 September–30 November", seleksi: "7 Desember · seleksi via video call", pengumuman: "14 Desember", pelunasan: "20 Januari" },
+      { nama: "Gelombang 2", pendaftaranBerkas: "21 Januari–31 Maret", seleksi: "3 April · seleksi via video call", pengumuman: "10 April", pelunasan: "10 Mei" },
+    ],
+    pertemuanOrangTua: "20 Juni · pertemuan orang tua dan pemberkasan",
     alurPendaftaran: [
       {
         nomor: 1,
@@ -188,8 +226,8 @@ export const defaultSiteContent: BaladzSiteContent = {
       },
       {
         nomor: 2,
-        judul: "Membayar Biaya Pendaftaran",
-        keterangan: "Transfer biaya pendaftaran sebesar Rp 150.000,- ke rekening resmi Yayasan, lalu kirim bukti via WA.",
+        judul: "Kirim Berkas dan Bukti Transfer",
+        keterangan: "Kirim berkas dan bukti transfer ke WhatsApp resmi. Tim Baladz akan memeriksanya secara manual.",
       },
       {
         nomor: 3,
@@ -198,8 +236,8 @@ export const defaultSiteContent: BaladzSiteContent = {
       },
       {
         nomor: 4,
-        judul: "Jadwal & Ujian Seleksi Offline",
-        keterangan: "Tes seleksi Al-Qur'an & wawancara orang tua diadakan di Baladz 1 Jatihandap sesuai jadwal perjanjian.",
+        judul: "Seleksi via Video Call",
+        keterangan: "Ikuti seleksi sesuai jadwal gelombang. Tahun dan penerapan per jenjang masih menunggu konfirmasi.",
       },
       {
         nomor: 5,
@@ -208,23 +246,17 @@ export const defaultSiteContent: BaladzSiteContent = {
       },
     ],
     syaratBerkas: [
-      "File foto 4x6 setengah badan background merah (Putra: kemeja putih berkerah; Putri: pakaian putih berjilbab putih).",
-      "Scan Kartu Keluarga (KK) yang masih berlaku.",
-      "Scan Akta Kelahiran calon santri.",
-      "Scan sertifikat/piagam hafalan Al-Qur'an (jika memiliki).",
-      "Calon santri SDTahfidz usia minimal 6 tahun per 14 Juli 2027.",
-      "Bagi calon santri boarding: Tidak memiliki riwayat penyakit berat berbahaya (asma berat, TBC, jantung, hepatitis B, epilepsi).",
+      "Daftar berkas per jenjang menunggu konfirmasi final tim Baladz.",
     ],
     materiSeleksi: [
-      "Tes membaca Al-Qur’an (kelancaran makharijul huruf & tajwid dasar)",
-      "Tes daya ingat hafalan bagi calon santri",
-      "Wawancara kesiapan orang tua / wali santri",
+      "Seleksi dilakukan melalui video call sesuai jadwal gelombang.",
+      "Materi seleksi dan penerapannya per jenjang menunggu konfirmasi final tim Baladz.",
     ],
     rekeningPembayaran: {
       bank: "Rekening Resmi Yayasan",
-      nomorRekening: "7112564138",
-      atasNama: "A Aminah (Ketua Yayasan)",
-      catatanTransfer: "Kirim bukti transfer ke WhatsApp 088222822233 dengan format: Pendaftaran [Nama Calon Santri]",
+      nomorRekening: "3888822339",
+      atasNama: "Baladz Cerdas Mulia",
+      catatanTransfer: "Kirim bukti transfer ke WhatsApp 081234598187 untuk verifikasi manual tim Baladz.",
     },
   },
 
@@ -247,6 +279,9 @@ export const defaultSiteContent: BaladzSiteContent = {
       ],
       gambar: "/images/baladz/raw-PAUDQ-1.jpg",
       isBoardingTersedia: false,
+      kategori: "jenjang",
+      hargaTerverifikasi: false,
+      sumber: "Profil jenjang: baladz.net. Harga PSB terbaru belum dikonfirmasi tim Baladz.",
     },
     {
       id: "tk-alquran",
@@ -266,6 +301,9 @@ export const defaultSiteContent: BaladzSiteContent = {
       ],
       gambar: "/images/baladz/raw-LQ_1.jpg",
       isBoardingTersedia: false,
+      kategori: "jenjang",
+      hargaTerverifikasi: false,
+      sumber: "Profil jenjang: baladz.net. Harga PSB terbaru belum dikonfirmasi tim Baladz.",
     },
     {
       id: "sd-tahfidz",
@@ -286,6 +324,73 @@ export const defaultSiteContent: BaladzSiteContent = {
       ],
       gambar: "/images/baladz/gallery-class.jpg",
       isBoardingTersedia: true,
+      kategori: "jenjang",
+      hargaTerverifikasi: false,
+      sumber: "Profil jenjang: baladz.net. Harga TA 2027/2028 belum boleh mengambil flyer lama.",
+    },
+    {
+      id: "smp-alquran",
+      nama: "SMP Al-Qur’an",
+      tingkat: "Sekolah Menengah Qur’ani",
+      rentangUsia: "Lulusan SD / sederajat",
+      deskripsi: "Program lanjutan yang memadukan target hafalan, bahasa, hadis, dan pembinaan akhlak dalam lingkungan Ma’had Baladz.",
+      ijazah: "Menunggu konfirmasi tim Baladz",
+      uangPangkal: 0,
+      sppBulanan: 0,
+      keunggulan: [
+        "Target hafalan 30 juz mutqin",
+        "Hadis Arba’in dan 100 hadis umum",
+        "Bahasa Arab dan Inggris intensif",
+        "Pembinaan akhlakul karimah",
+      ],
+      gambar: "/images/baladz/gallery-quran.jpg",
+      isBoardingTersedia: false,
+      kategori: "jenjang",
+      hargaTerverifikasi: false,
+      sumber: "Catatan meeting tim Baladz. Uang pangkal berbeda antara catatan dan flyer; jangan ditayangkan sebelum dikonfirmasi.",
+    },
+    {
+      id: "kelas-reguler",
+      nama: "Kelas Al-Qur’an Reguler",
+      tingkat: "Kelas Al-Qur’an",
+      rentangUsia: "Terbuka untuk umum",
+      deskripsi: "Belajar Al-Qur’an terjadwal di Ma’had Baladz dengan pilihan waktu siang, sore, atau malam.",
+      ijazah: "Program pembelajaran nonjenjang",
+      uangPangkal: 0,
+      sppBulanan: 250000,
+      jadwal: [
+        "Senin–Rabu · 13.00–14.30",
+        "Senin–Rabu · 16.00–17.30",
+        "Senin–Rabu · 18.00–20.00",
+        "Rabu–Jumat · 13.00–14.30",
+        "Rabu–Jumat · 16.00–17.30",
+      ],
+      keunggulan: ["Pilihan jadwal fleksibel", "Belajar langsung di Ma’had Baladz"],
+      gambar: "/images/baladz/gallery-teacher.jpg",
+      isBoardingTersedia: false,
+      kategori: "kelas",
+      hargaTerverifikasi: true,
+      sumber: "Catatan meeting tim Baladz.",
+    },
+    {
+      id: "kelas-privat",
+      nama: "Kelas Al-Qur’an Privat",
+      tingkat: "Kelas Al-Qur’an",
+      rentangUsia: "Terbuka untuk umum",
+      deskripsi: "Empat pertemuan setiap bulan, masing-masing 90 menit, dengan pilihan belajar di Baladz atau di rumah.",
+      ijazah: "Program pembelajaran nonjenjang",
+      uangPangkal: 0,
+      sppBulanan: 350000,
+      opsiBiaya: [
+        { label: "Belajar di Baladz", nominal: 350000 },
+        { label: "Pengajar ke rumah", nominal: 450000 },
+      ],
+      keunggulan: ["4 pertemuan per bulan", "Durasi 90 menit per pertemuan"],
+      gambar: "/images/baladz/gallery-class.jpg",
+      isBoardingTersedia: false,
+      kategori: "kelas",
+      hargaTerverifikasi: true,
+      sumber: "Catatan meeting tim Baladz.",
     },
   ],
 
@@ -296,7 +401,7 @@ export const defaultSiteContent: BaladzSiteContent = {
       ringkasan:
         "Alhamdulillaah, Baladz menerima wakaf lahan seluas 600m² di Cipaheut, Cimenyan, Bandung. Lokasi ini diproyeksikan menjadi Pesantren Baladil Huffaadz modern.",
       isiLengkap: [
-        "Alhamdulillaah, atas pertolongan Allah Ta'ala, Baladz menerima amanah wakaf lahan dengan luas 600m² di kawasan Cipaheut, Cimenyan, Kabupaten Bandung, berjarak sekitar 3 km dari kampus Baladz 1.",
+        "Alhamdulillaah, atas pertolongan Allah Ta'ala, Baladz menerima amanah wakaf lahan dengan luas 600m² di kawasan Cipaheut, Cimenyan, Kabupaten Bandung, berjarak sekitar 3 km dari Ma’had Baladz 1.",
         "Saat ini lahan telah dibersihkan dan bedeng kerja untuk para tukang telah didirikan. Di sekeliling lahan tersebut terdapat potensi pembebasan lebih dari 7.000m² dari para aghniya dan dermawan untuk perluasan kawasan.",
         "Di lokasi perbukitan yang asri inilah direncanakan berdiri kompleks Pesantren Baladil Huffaadz: bayt Al-Qur'an dengan fasilitas modern, suasana belajar tenang, dan berpegang teguh pada manhaj Ahlussunnah wal Jama'ah.",
         "Bagi muhsinin atau orang tua yang ingin silaturahmi dan meninjau lokasi rencana pembangunan, silakan menghubungi WhatsApp resmi Baladz.",
@@ -337,69 +442,9 @@ export const defaultSiteContent: BaladzSiteContent = {
     },
   ],
 
-  kajian: [
-    {
-      id: "kisah-zubair-bin-awwam",
-      judul: "Kisah Keberanian Zubair bin Awwam رضي الله عنه, Sahabat yang Dijamin Masuk Surga",
-      ringkasan:
-        "Meneladani keberanian dan ketulusan Hawariyy (pembela setia) Rasulullah ﷺ yang sejak belia teguh memperjuangkan tauhid.",
-      isiLengkap: [
-        "Zubair bin Awwam رضي الله عنه merupakan salah satu sahabat mulia Rasulullah ﷺ yang dikenal luas karena keberanian dan keteguhannya. Beliau termasuk dalam sepuluh sahabat yang mendapat kabar gembira masuk surga (Al-'Asyarah Al-Mubasysyarun bil Jannah).",
-        "Nama lengkap beliau adalah Az-Zubair bin Al-Awwam bin Khuwailid bin Asad bin Abdul 'Uzza bin Qushai رضي الله عنه. Garis nasabnya bertemu dengan nasab Rasulullah ﷺ pada kakek buyut Qushai. Ibunda beliau adalah Shafiyyah binti Abdul Muththalib, bibi dari Rasulullah ﷺ.",
-        "Rasulullah ﷺ bersabda: 'Setiap nabi memiliki hawariyy (pembela setia), dan pembelaku adalah Zubair.' (HR. Bukhari dan Muslim).",
-        "Kisah Zubair menjadi teladan agung bagi orang tua dalam mendidik anak agar memiliki keberanian berlandaskan iman, ketangguhan fisik, dan cinta mendalam kepada Allah dan Rasul-Nya.",
-      ],
-      tanggal: "14 September 2026",
-      kategori: "Sirah Sahabat",
-      penulis: "Ustadzah Asti",
-    },
-    {
-      id: "tolong-menolong-kebaikan",
-      judul: "Tolong-Menolong dalam Kebaikan dan Takwa, Bukan dalam Dosa",
-      ringkasan:
-        "Tafsir hikmah QS Al-Ma'idah ayat 2 tentang pondasi muamalah dan persaudaraan sesama kaum mukminin.",
-      isiLengkap: [
-        "Islam mengajarkan kita untuk senantiasa saling tolong-menolong dalam kebaikan. Namun, bantuan yang kita berikan harus dilandasi ketakwaan, bukan untuk mendukung keburukan atau pelanggaran syariat.",
-        "Allah Ta'ala berfirman dalam QS Al-Ma'idah ayat 2: 'Dan tolong-menolonglah kamu dalam mengerjakan kebajikan dan takwa, dan jangan tolong-menolong dalam berbuat dosa dan permusuhan.'",
-        "Dalam mendidik anak-anak kita di rumah dan sekolah, nilai tolong-menolong ini harus dipupuk melalui keteladanan: saling berbagi, menghargai sesama teman, serta bersama-sama saling mengingatkan dalam kebaikan ibadah.",
-      ],
-      tanggal: "11 September 2026",
-      kategori: "Tafsir & Akhlak",
-      penulis: "Ustadzah Asti",
-    },
-    {
-      id: "pelajaran-said-bin-zaid",
-      judul: "Pelajaran Penting dari Sa’id bin Zaid رضي الله عنه",
-      ringkasan:
-        "Mengenal sosok sahabat agung yang istiqomah di awal dakwah Islam dan keutamaan doanya yang mustajab.",
-      isiLengkap: [
-        "Sa'id bin Zaid رضي الله عنه adalah salah satu sahabat yang memeluk Islam di masa-masa awal (As-Sabiqunal Awwalun). Ayahnya, Zaid bin 'Amr bin Nufail, adalah seorang hanif yang menolak penyembahan berhala bahkan sebelum diutusnya kenabian.",
-        "Sa'id bin Zaid mewarisi keteguhan prinsip tersebut. Beliau rela menanggung ujian berat dari kaum musyrikin Mekkah demi mempertahankan keimanan.",
-        "Keteladanan beliau mengajarkan kita pentingnya menanamkan akidah yang kokoh sejak anak masih kecil, agar kelak memiliki jati diri muslim yang tangguh di tengah berbagai pengaruh zaman.",
-      ],
-      tanggal: "10 September 2026",
-      kategori: "Sirah Sahabat",
-      penulis: "Ustadzah Asti",
-    },
-    {
-      id: "mendidik-anak-cinta-quran",
-      judul: "Kiat Praktis Menanamkan Kecintaan Al-Qur'an pada Anak Usia Emas",
-      ringkasan:
-        "Metode pembiasaan mendengar (listening), teladan orang tua, dan menciptakan suasana rumah yang sejuk dengan Al-Qur'an.",
-      isiLengkap: [
-        "Usia emas (0–6 tahun) adalah periode paling responsif dalam menyerap bunyi dan kebiasaan. Anak yang terbiasa mendengarkan murottal Al-Qur'an setiap hari akan memiliki kepekaan makhraj yang jauh lebih lentur.",
-        "Kunci utama keberhasilan pendidikan Al-Qur'an bukan pada paksaan, melainkan pada suasana yang hangat, apresiasi tulus orang tua, dan kehadiran sosok guru yang mengajar dengan kelembutan.",
-        "Di Baladz, metode ini menjadi pilar utama pada jenjang PAUD Listening Al-Qur'an (LQ) dan TKQ, sehingga hafalan tumbuh dari rasa cinta, bukan beban.",
-      ],
-      tanggal: "5 September 2026",
-      kategori: "Parenting Qur'ani",
-      penulis: "Tim Pendidikan Baladz",
-    },
-  ],
-
   kontak: {
     telepon: "081234598187",
-    whatsappUtama: "088222822233",
+    whatsappUtama: "081234598187",
     whatsappKedua: "081234598187",
     email: "baladilhuffaadz@gmail.com",
     alamatLengkap: "Yayasan Baladz Cerdas Mulia, Jl. Pasirlayung Barat No. 44, Padasuka, Cimenyan, Kabupaten Bandung 40191, Jawa Barat, Indonesia",
@@ -412,16 +457,24 @@ export const defaultSiteContent: BaladzSiteContent = {
     },
   },
 
+  cta: {
+    teksDaftar: "Daftar Santri Baru",
+    teksWhatsapp: "Konsultasi WhatsApp",
+    pesanWhatsapp: "Assalamu'alaikum tim Baladz, saya ingin berkonsultasi tentang program dan pendaftaran.",
+    teksKunjungan: "Atur Kunjungan via WhatsApp",
+    pesanKunjungan: "Assalamu'alaikum tim Baladz, saya ingin bertanya dan mengatur jadwal kunjungan/survei ke Ma’had Baladz.",
+  },
+
   popup: {
     aktif: true,
     modeTampilan: "gambar_teks",
-    judul: "Penerimaan Santri Baru TA 2027/2028 Telah Dibuka!",
-    subjudul: "Membina generasi berkarakter Qur'ani dengan bimbingan Asatidzah bersanad 30 Juz. Kuota sangat terbatas hanya 13 santri.",
-    gambarPoster: "/images/baladz/raw-PAUDQ-1.jpg",
-    teksCta: "Daftar Sekarang via WhatsApp",
-    nomorWaCta: "088222822233",
+    judul: "Informasi PSB Sedang Diperbarui",
+    subjudul: "Tahun ajaran dan penerapan jadwal per jenjang sedang dikonfirmasi. Tim Baladz siap membantu menjawab pertanyaan Anda.",
+    gambarPoster: "/images/baladz/gallery-class.jpg",
+    teksCta: "Tanyakan PSB via WhatsApp",
+    nomorWaCta: "081234598187",
     pesanWaCta: "Assalamu'alaikum Panitia PSB Baladz, saya ingin menanyakan pendaftaran santri baru.",
-    linkCta: "https://wa.me/6288222822233?text=Assalamu%27alaikum%20Panitia%20PSB%20Baladz%2C%20saya%20ingin%20mendaftar%20santri%20baru.",
+    linkCta: "",
     teksTutup: "Lanjutkan ke Website",
   },
 };

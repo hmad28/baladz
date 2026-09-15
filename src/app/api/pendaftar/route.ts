@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     const inserted = await sql`
       INSERT INTO pendaftar (nama_santri, tgl_lahir_usia, jenjang, nama_wali, no_wa, alamat, status, created_at)
-      VALUES (${nama_santri}, ${tgl_lahir_usia || ""}, ${jenjang}, ${nama_wali}, ${no_wa}, ${alamat || ""}, 'Baru', NOW())
+      VALUES (${nama_santri}, ${tgl_lahir_usia || ""}, ${jenjang}, ${nama_wali}, ${no_wa}, ${alamat || ""}, 'Pendaftar masuk — belum ditindaklanjuti', NOW())
       RETURNING id, nama_santri, created_at
     `;
 

@@ -16,7 +16,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "Baladz — Pendidikan Al-Qur’an untuk Kehidupan",
   description:
-    "Informasi program pendidikan, pendaftaran santri baru, produk, kabar, dan kajian Baladz.",
+    "Informasi program pendidikan, kelas Al-Qur’an, pendaftaran santri baru, dan Kabar Baladz.",
   openGraph: {
     title: "Baladz — Pendidikan Al-Qur’an untuk Kehidupan",
     description:
