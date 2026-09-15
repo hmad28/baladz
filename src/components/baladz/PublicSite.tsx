@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ArrowRight,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -36,17 +37,27 @@ export function PublicSite() {
   // Tab utama (Sesuai 3 pilar Baladz: Beranda / Kabar Baladz / Kajian)
   const [activeTab, setActiveTab] = useState<"beranda" | "kabar" | "kajian">("beranda");
 
-  // Popup state: muncul setiap orang mengunjungi/berpindah ke 3 halaman (bukan sesi)
+  // Popup cukup sekali per sesi agar tidak mengganggu saat pengunjung berpindah tab.
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const popupScheduledRef = useRef(false);
 
   useEffect(() => {
-    if (content.popup && content.popup.aktif) {
-      const timer = setTimeout(() => {
-        setIsPopupOpen(true);
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, content.popup]);
+    if (!content.popup?.aktif || popupScheduledRef.current) return;
+
+    const sessionKey = "baladz-popup-shown";
+    if (window.sessionStorage.getItem(sessionKey)) return;
+
+    popupScheduledRef.current = true;
+    const timer = window.setTimeout(() => {
+      window.sessionStorage.setItem(sessionKey, "true");
+      setIsPopupOpen(true);
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timer);
+      popupScheduledRef.current = false;
+    };
+  }, [content.popup?.aktif]);
 
   // Mobile menu open/close
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -409,10 +420,10 @@ export function PublicSite() {
                         Konsultasi WhatsApp
                       </a>
                       <a
-                        href="#biaya-psb"
+                        href="/psb"
                         className="text-stone-600 hover:text-emerald-800 text-sm font-medium underline underline-offset-4 py-3 px-2"
                       >
-                        Lihat Rincian Biaya ↓
+                        Lihat informasi PSB
                       </a>
                     </div>
 
@@ -459,7 +470,111 @@ export function PublicSite() {
             </section>
 
             {/* SECTION: BALADZ HARI INI (Keunggulan & Fasilitas Lembaga) */}
-            <section className="py-12 bg-white border-b border-stone-200">
+            <section className="bg-white border-b border-stone-200 py-10 sm:py-12">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+                <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-8 lg:gap-12 items-start">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#D97706]">Tentang Baladz</span>
+                    <h2 className="mt-2 text-2xl sm:text-3xl font-serif font-bold text-[#0F4C3A]">
+                      Pendidikan Al-Qur&apos;an yang terarah sejak usia dini
+                    </h2>
+                    <p className="mt-4 text-sm sm:text-base leading-relaxed text-stone-600">{content.lembaga.deskripsi}</p>
+                    <a href={content.kontak.googleMapsUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#0F4C3A] hover:text-[#D97706]">
+                      Lihat lokasi kampus <ArrowRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {content.lembaga.poinKeunggulan.slice(0, 4).map((item) => (
+                      <div key={item} className="flex gap-3 rounded-xl border border-stone-200 bg-[#FAF8F5] p-4">
+                        <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-700" />
+                        <p className="text-sm leading-relaxed text-stone-700">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div id="program-pendidikan">
+                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#D97706]">Program Pendidikan</span>
+                      <h2 className="mt-2 text-2xl sm:text-3xl font-serif font-bold text-[#0F4C3A]">Pilih program sesuai usia anak</h2>
+                    </div>
+                    <p className="max-w-md text-sm text-stone-600">Bandingkan usia, fokus belajar, dan biaya tanpa membaca halaman panjang.</p>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-5">
+                    {content.jenjang.map((jenjang) => (
+                      <article key={jenjang.id} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xs">
+                        <div className="relative h-44">
+                          <Image src={jenjang.gambar} alt={jenjang.nama} fill className="object-cover" />
+                          <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-[#0F4C3A] shadow-sm">{jenjang.rentangUsia}</span>
+                        </div>
+                        <div className="p-5">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-[#D97706]">{jenjang.tingkat}</p>
+                          <h3 className="mt-1 text-lg font-serif font-bold text-[#0F4C3A] leading-snug">{jenjang.nama}</h3>
+                          <p className="mt-2 text-sm leading-relaxed text-stone-600 line-clamp-3">{jenjang.deskripsi}</p>
+                          <div className="mt-4 flex items-end justify-between gap-3 border-t border-stone-100 pt-4">
+                            <div>
+                              <p className="text-[11px] text-stone-500">SPP mulai</p>
+                              <p className="font-bold text-stone-900">{formatRupiah(jenjang.sppBulanan)}<span className="text-xs font-normal text-stone-500">/bulan</span></p>
+                            </div>
+                            <button onClick={() => { setRegisterJenjang(jenjang.nama); setIsRegisterModalOpen(true); }} className="inline-flex items-center gap-1 text-sm font-bold text-[#0F4C3A] hover:text-[#D97706] cursor-pointer">
+                              Pilih <ArrowRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-[#0F4C3A] p-6 sm:p-8 text-white grid lg:grid-cols-[1fr_auto] gap-6 items-center">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-300">
+                      <span>PSB {content.psb.tahunAjaran}</span>
+                      <span className="rounded-full bg-white/10 px-2 py-1">{content.psb.statusPendaftaran}</span>
+                    </div>
+                    <h2 className="mt-2 text-2xl font-serif font-bold">Pendaftaran santri baru sedang dibuka</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-emerald-100">{content.psb.tanggalBuka}—{content.psb.tanggalTutup} · Kuota {content.psb.kuotaSantri} santri · Formulir {formatRupiah(content.psb.biayaPendaftaran)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Link href="/psb" className="rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#0F4C3A] hover:bg-amber-50">Lihat info PSB</Link>
+                    <button onClick={() => setIsRegisterModalOpen(true)} className="rounded-lg bg-[#D97706] px-5 py-3 text-sm font-bold text-white hover:bg-[#B45309] cursor-pointer">Daftar sekarang</button>
+                  </div>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-8">
+                  <div>
+                    <div className="mb-4 flex items-end justify-between gap-3">
+                      <div><p className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Kabar</p><h2 className="mt-1 text-xl font-serif font-bold text-[#0F4C3A]">Aktivitas terbaru</h2></div>
+                      <button onClick={() => setActiveTab("kabar")} className="text-sm font-bold text-[#0F4C3A] cursor-pointer">Lihat semua</button>
+                    </div>
+                    <div className="space-y-3">
+                      {content.kabar.slice(0, 2).map((item) => (
+                        <button key={item.id} onClick={() => setActiveKabarModal(item)} className="w-full rounded-xl border border-stone-200 p-4 text-left hover:border-emerald-300 hover:bg-emerald-50/30 cursor-pointer">
+                          <p className="text-xs text-stone-500">{item.tanggal} · {item.kategori}</p><h3 className="mt-1 font-bold text-stone-900 line-clamp-2">{item.judul}</h3>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-4 flex items-end justify-between gap-3">
+                      <div><p className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Kajian</p><h2 className="mt-1 text-xl font-serif font-bold text-[#0F4C3A]">Bacaan untuk orang tua</h2></div>
+                      <button onClick={() => setActiveTab("kajian")} className="text-sm font-bold text-[#0F4C3A] cursor-pointer">Lihat semua</button>
+                    </div>
+                    <div className="space-y-3">
+                      {content.kajian.slice(0, 2).map((item) => (
+                        <button key={item.id} onClick={() => setActiveKajianModal(item)} className="w-full rounded-xl border border-stone-200 p-4 text-left hover:border-emerald-300 hover:bg-emerald-50/30 cursor-pointer">
+                          <p className="text-xs text-stone-500">{item.tanggal} · {item.kategori}</p><h3 className="mt-1 font-bold text-stone-900 line-clamp-2">{item.judul}</h3>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Detail lengkap tetap tersedia di halaman PSB dan pengelola konten. */}
+            <section className="hidden">
               <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="text-center max-w-3xl mx-auto mb-10">
                   <span className="text-xs font-bold uppercase tracking-widest text-[#D97706]">Profil Lembaga</span>
@@ -533,7 +648,7 @@ export function PublicSite() {
             </section>
 
             {/* SECTION: 3 JENJANG PENDIDIKAN (PRODUK PENDIDIKAN UTAMA) */}
-            <section id="jenjang-pendidikan" className="py-14 bg-[#FAF8F5] border-b border-stone-200">
+            <section id="jenjang-pendidikan" className="hidden">
               <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="text-center max-w-3xl mx-auto mb-12">
                   <span className="text-xs font-bold uppercase tracking-widest text-[#D97706]">Produk Pendidikan</span>
@@ -637,7 +752,7 @@ export function PublicSite() {
             </section>
 
             {/* SECTION: KALKULATOR BIAYA INTERAKTIF (Ramah Orang Tua) */}
-            <section id="biaya-psb" className="py-12 bg-white border-b border-stone-200">
+            <section id="biaya-psb" className="hidden">
               <div className="max-w-4xl mx-auto px-4 sm:px-6">
                 <div className="bg-[#FAF8F5] border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-xs">
                   <div className="text-center mb-6">
@@ -756,7 +871,7 @@ export function PublicSite() {
             </section>
 
             {/* SECTION: INFORMASI PSB & ALUR SELEKSI LENGKAP */}
-            <section id="informasi-psb" className="py-14 bg-[#FAF8F5]">
+            <section id="informasi-psb" className="hidden">
               <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="grid lg:grid-cols-12 gap-10">
                   {/* Kiri: Alur Pendaftaran */}
