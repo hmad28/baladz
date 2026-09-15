@@ -31,7 +31,10 @@ import {
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
 import { UploadButton } from "@/lib/uploadthing";
-import { type BeritaKabar } from "@/content/site-content";
+import {
+  type BeritaKabar,
+  type JenjangPendidikan,
+} from "@/content/site-content";
 
 interface PendaftarRow {
   id: number;
@@ -54,6 +57,180 @@ const pendaftarStatuses = [
   "Diterima",
   "Tidak dilanjutkan",
 ] as const;
+
+function createEmptyProgram(): JenjangPendidikan {
+  return {
+    id: "",
+    nama: "",
+    tingkat: "",
+    rentangUsia: "",
+    deskripsi: "",
+    ijazah: "",
+    uangPangkal: 0,
+    sppBulanan: 0,
+    biayaBoarding: 0,
+    keunggulan: [],
+    gambar: "/images/baladz/gallery-class.jpg",
+    isBoardingTersedia: false,
+    kategori: "jenjang",
+    jadwal: [],
+    opsiBiaya: [],
+    hargaTerverifikasi: false,
+    sumber: "Catatan internal: program baru, menunggu verifikasi tim Baladz.",
+  };
+}
+
+function getProgramPriceLabel(program: JenjangPendidikan): string {
+  if (program.hargaTerverifikasi !== true) return "Harga belum ditayangkan";
+  if (program.sppBulanan > 0) {
+    return `Rp ${program.sppBulanan.toLocaleString("id-ID")}/bulan`;
+  }
+  if (program.uangPangkal > 0) {
+    return `Mulai Rp ${program.uangPangkal.toLocaleString("id-ID")}`;
+  }
+  return "Harga sudah diverifikasi";
+}
+
+interface ProgramEditorFieldsProps {
+  value: JenjangPendidikan;
+  onChange: (value: JenjangPendidikan) => void;
+  onUploadComplete: () => void;
+}
+
+function ProgramEditorFields({ value, onChange, onUploadComplete }: ProgramEditorFieldsProps) {
+  const update = (patch: Partial<JenjangPendidikan>) => onChange({ ...value, ...patch });
+  const fieldClass = "w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/10";
+
+  return (
+    <div className="space-y-7">
+      <section className="space-y-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">Informasi utama</p>
+          <p className="mt-1 text-sm text-stone-500">Informasi yang paling dahulu dilihat orang tua di halaman program.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Nama program *</span>
+            <input required value={value.nama} onChange={(event) => update({ nama: event.target.value })} className={fieldClass} placeholder="Contoh: SMP Al-Qur’an" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Jenis / tingkat *</span>
+            <input required value={value.tingkat} onChange={(event) => update({ tingkat: event.target.value })} className={fieldClass} placeholder="Contoh: Sekolah Menengah Qur’ani" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Kelompok program</span>
+            <select value={value.kategori || "jenjang"} onChange={(event) => update({ kategori: event.target.value as "jenjang" | "kelas" })} className={fieldClass}>
+              <option value="jenjang">Jenjang sekolah</option>
+              <option value="kelas">Kelas Al-Qur’an</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Usia / peserta</span>
+            <input value={value.rentangUsia} onChange={(event) => update({ rentangUsia: event.target.value })} className={fieldClass} placeholder="Contoh: Lulusan SD / sederajat" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Ijazah / sertifikat</span>
+            <input value={value.ijazah} onChange={(event) => update({ ijazah: event.target.value })} className={fieldClass} placeholder="Kosongkan bila tidak ada" />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Deskripsi *</span>
+            <textarea required rows={4} value={value.deskripsi} onChange={(event) => update({ deskripsi: event.target.value })} className={fieldClass} placeholder="Jelaskan fokus program dengan singkat dan spesifik." />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Keunggulan <span className="font-normal text-stone-400">— satu baris per poin</span></span>
+            <textarea rows={5} value={value.keunggulan.join("\n")} onChange={(event) => update({ keunggulan: event.target.value.split("\n").filter(Boolean) })} className={fieldClass} placeholder="Target hafalan 30 juz mutqin" />
+          </label>
+        </div>
+      </section>
+
+      <section className="space-y-4 border-t border-stone-200 pt-6">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">Foto program</p>
+          <p className="mt-1 text-sm text-stone-500">Gunakan foto kegiatan asli dengan rasio mendatar.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-[10rem_1fr] sm:items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value.gambar} alt={`Preview ${value.nama || "program"}`} className="aspect-[4/3] w-full rounded-xl bg-stone-100 object-cover" />
+          <div className="space-y-3">
+            <input value={value.gambar} onChange={(event) => update({ gambar: event.target.value })} className={fieldClass} placeholder="URL gambar" />
+            <div className="flex items-center justify-between rounded-xl border border-dashed border-stone-300 bg-stone-50 px-3 py-2">
+              <span className="text-xs text-stone-500">Atau unggah foto</span>
+              <UploadButton
+                endpoint="imageUploader"
+                onClientUploadComplete={(result) => {
+                  const file = result?.[0];
+                  const url = file?.ufsUrl || file?.url;
+                  if (url) {
+                    update({ gambar: url });
+                    onUploadComplete();
+                  }
+                }}
+                onUploadError={(error) => console.error("Upload program gagal:", error)}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4 border-t border-stone-200 pt-6">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">Biaya & jadwal</p>
+          <p className="mt-1 text-sm text-stone-500">Harga tidak muncul di website sampai status verifikasi diaktifkan.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Uang pangkal</span>
+            <input type="number" min="0" value={value.uangPangkal} onChange={(event) => update({ uangPangkal: Number(event.target.value) })} className={`${fieldClass} font-mono tabular-nums`} />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">SPP / biaya bulanan</span>
+            <input type="number" min="0" value={value.sppBulanan} onChange={(event) => update({ sppBulanan: Number(event.target.value) })} className={`${fieldClass} font-mono tabular-nums`} />
+          </label>
+          <label className="flex items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 text-sm font-semibold text-stone-700 sm:col-span-2">
+            <input type="checkbox" checked={value.isBoardingTersedia} onChange={(event) => update({ isBoardingTersedia: event.target.checked })} className="size-4 accent-emerald-800" />
+            Tersedia asrama / boarding
+          </label>
+          {value.isBoardingTersedia && (
+            <label className="block sm:col-span-2">
+              <span className="mb-1.5 block text-xs font-semibold text-stone-700">Biaya boarding</span>
+              <input type="number" min="0" value={value.biayaBoarding || 0} onChange={(event) => update({ biayaBoarding: Number(event.target.value) })} className={`${fieldClass} font-mono tabular-nums`} />
+            </label>
+          )}
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">Pilihan jadwal <span className="font-normal text-stone-400">— satu baris per jadwal</span></span>
+            <textarea rows={5} value={(value.jadwal || []).join("\n")} onChange={(event) => update({ jadwal: event.target.value.split("\n").filter(Boolean) })} className={fieldClass} placeholder="Senin–Rabu · 13.00–14.30" />
+          </label>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-stone-700">Pilihan biaya tambahan</p>
+            <button type="button" onClick={() => update({ opsiBiaya: [...(value.opsiBiaya || []), { label: "Pilihan baru", nominal: 0 }] })} className="text-xs font-bold text-emerald-800 hover:text-emerald-950">+ Tambah pilihan</button>
+          </div>
+          {(value.opsiBiaya || []).map((option, optionIndex) => (
+            <div key={`${option.label}-${optionIndex}`} className="grid gap-2 rounded-xl bg-stone-50 p-3 sm:grid-cols-[1fr_12rem_auto]">
+              <input value={option.label} onChange={(event) => { const options = [...(value.opsiBiaya || [])]; options[optionIndex] = { ...option, label: event.target.value }; update({ opsiBiaya: options }); }} className={fieldClass} aria-label={`Nama pilihan biaya ${optionIndex + 1}`} />
+              <input type="number" min="0" value={option.nominal} onChange={(event) => { const options = [...(value.opsiBiaya || [])]; options[optionIndex] = { ...option, nominal: Number(event.target.value) }; update({ opsiBiaya: options }); }} className={`${fieldClass} font-mono tabular-nums`} aria-label={`Nominal pilihan biaya ${optionIndex + 1}`} />
+              <button type="button" onClick={() => update({ opsiBiaya: (value.opsiBiaya || []).filter((_, index) => index !== optionIndex) })} className="rounded-lg px-3 text-xs font-bold text-red-600 hover:bg-red-50" aria-label={`Hapus pilihan biaya ${optionIndex + 1}`}>Hapus</button>
+            </div>
+          ))}
+        </div>
+
+        <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
+          <input type="checkbox" checked={value.hargaTerverifikasi === true} onChange={(event) => update({ hargaTerverifikasi: event.target.checked })} className="mt-0.5 size-4 accent-emerald-800" />
+          <span><span className="block">Harga sudah dikonfirmasi</span><span className="mt-0.5 block text-xs font-normal text-amber-800">Aktifkan hanya setelah angka disetujui tim Baladz.</span></span>
+        </label>
+      </section>
+
+      <section className="border-t border-stone-200 pt-6">
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold text-stone-700">Catatan sumber internal</span>
+          <textarea rows={3} value={value.sumber || ""} onChange={(event) => update({ sumber: event.target.value })} className={fieldClass} placeholder="Sumber data dan status konfirmasi" />
+        </label>
+      </section>
+    </div>
+  );
+}
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -138,6 +315,10 @@ export function AdminDashboard() {
   // View mode untuk Kabar: null (tampilan list), "new" (halaman tambah baru), number (halaman edit detail)
   const [kabarView, setKabarView] = useState<number | "new" | null>(null);
 
+  // Program memakai alur list -> create/detail agar dashboard tidak menjadi form panjang.
+  const [programView, setProgramView] = useState<number | "new" | null>(null);
+  const [newProgram, setNewProgram] = useState<JenjangPendidikan>(createEmptyProgram);
+
   // State tambah kabar baru
   const [newKabarJudul, setNewKabarJudul] = useState("");
   const [newKabarKategori, setNewKabarKategori] = useState("Kegiatan Santri");
@@ -148,6 +329,11 @@ export function AdminDashboard() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const openProgramList = () => {
+    setProgramView(null);
+    setActiveMenu("jenjang");
   };
 
   // Fetch daftar pendaftar dari Neon DB
@@ -237,6 +423,43 @@ export function AdminDashboard() {
     setNewKabarRingkasan("");
     setNewKabarIsi("");
     showToast("Berita baru berhasil ditambahkan!");
+  };
+
+  const handleCreateProgram = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newProgram.nama.trim() || !newProgram.tingkat.trim() || !newProgram.deskripsi.trim()) {
+      showToast("Lengkapi nama, jenis, dan deskripsi program.");
+      return;
+    }
+
+    const baseId = newProgram.nama
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "program";
+    const id = draft.jenjang.some((item) => item.id === baseId)
+      ? `${baseId}-${Date.now()}`
+      : baseId;
+
+    setDraft({
+      ...draft,
+      jenjang: [...draft.jenjang, { ...newProgram, id }],
+    });
+    setNewProgram(createEmptyProgram());
+    setProgramView(null);
+    showToast("Program ditambahkan. Klik Simpan Perubahan untuk menerbitkannya.");
+  };
+
+  const handleDeleteProgram = (index: number) => {
+    const program = draft.jenjang[index];
+    if (!program || !confirm(`Hapus program "${program.nama}"?`)) return;
+
+    setDraft({
+      ...draft,
+      jenjang: draft.jenjang.filter((_, itemIndex) => itemIndex !== index),
+    });
+    setProgramView(null);
+    showToast("Program dihapus dari draft. Klik Simpan Perubahan untuk menerapkan.");
   };
 
   return (
@@ -408,7 +631,7 @@ export function AdminDashboard() {
 
               {/* TAB 4: JENJANG PENDIDIKAN */}
               <button
-                onClick={() => setActiveMenu("jenjang")}
+                onClick={openProgramList}
                 className={`shrink-0 lg:w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
                   activeMenu === "jenjang"
                     ? "bg-[#0F4C3A] text-white shadow-xs"
@@ -475,7 +698,7 @@ export function AdminDashboard() {
                   <button onClick={() => setActiveMenu("pendaftar")} className="rounded-2xl border border-stone-200 bg-white p-5 text-left hover:border-blue-300 hover:shadow-sm cursor-pointer">
                     <Users className="w-5 h-5 text-blue-600" /><p className="mt-4 text-2xl font-bold text-stone-900">{pendaftarList.length}</p><p className="text-xs text-stone-500">Pendaftar masuk</p>
                   </button>
-                  <button onClick={() => setActiveMenu("jenjang")} className="rounded-2xl border border-stone-200 bg-white p-5 text-left hover:border-purple-300 hover:shadow-sm cursor-pointer">
+                  <button onClick={openProgramList} className="rounded-2xl border border-stone-200 bg-white p-5 text-left hover:border-purple-300 hover:shadow-sm cursor-pointer">
                     <GraduationCap className="w-5 h-5 text-purple-600" /><p className="mt-4 text-2xl font-bold text-stone-900">{draft.jenjang.length}</p><p className="text-xs text-stone-500">Program pendidikan</p>
                   </button>
                   <button onClick={() => setActiveMenu("kabar")} className="rounded-2xl border border-stone-200 bg-white p-5 text-left hover:border-orange-300 hover:shadow-sm cursor-pointer">
@@ -1299,120 +1522,218 @@ export function AdminDashboard() {
             )}
 
             {/* ======================================================= */}
-            {/* 4. 3 JENJANG PENDIDIKAN                                 */}
+            {/* 4. PROGRAM PENDIDIKAN: LIST, CREATE, DETAIL             */}
             {/* ======================================================= */}
             {activeMenu === "jenjang" && (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Produk Pendidikan</span>
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
-                    Program Pendidikan & Kelas Al-Qur’an
-                  </h2>
-                </div>
-
-                <div className="space-y-6">
-                  {draft.jenjang.map((item, idx) => (
-                    <div key={item.id} className="p-5 border border-stone-200 rounded-xl bg-stone-50/60 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-emerald-900">{item.nama}</span>
-                        <span className="text-xs text-stone-500">{item.tingkat}</span>
+              <div className="rounded-2xl border border-stone-200 bg-white shadow-2xs">
+                {programView === null && (
+                  <div className="animate-in fade-in duration-200">
+                    <div className="flex flex-col gap-5 border-b border-stone-200 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">Produk pendidikan</span>
+                        <h2 className="mt-1 text-2xl font-serif font-bold tracking-tight text-[#0F4C3A]">
+                          Program Pendidikan & Kelas Al-Qur’an
+                        </h2>
+                        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-500">
+                          Pilih program untuk melihat detailnya. Perubahan baru tayang setelah tombol Simpan Perubahan ditekan.
+                        </p>
                       </div>
-
-                      <div className="grid gap-3 text-xs sm:grid-cols-2">
-                        <label className="block"><span className="mb-1 block font-medium text-stone-600">Nama program</span><input value={item.nama} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], nama: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
-                        <label className="block"><span className="mb-1 block font-medium text-stone-600">Jenis / tingkat</span><input value={item.tingkat} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], tingkat: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
-                        <label className="block sm:col-span-2"><span className="mb-1 block font-medium text-stone-600">Deskripsi</span><textarea rows={2} value={item.deskripsi} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], deskripsi: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                        <div>
-                          <label className="block font-medium mb-1 text-stone-600">Rentang Usia</label>
-                          <input
-                            type="text"
-                            value={item.rentangUsia}
-                            onChange={(e) => {
-                              const updated = [...draft.jenjang];
-                              updated[idx] = { ...updated[idx], rentangUsia: e.target.value };
-                              setDraft({ ...draft, jenjang: updated });
-                            }}
-                            className="w-full px-3 py-2 border border-stone-300 rounded bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-medium mb-1 text-stone-600">Ijazah yang Didapat</label>
-                          <input
-                            type="text"
-                            value={item.ijazah}
-                            onChange={(e) => {
-                              const updated = [...draft.jenjang];
-                              updated[idx] = { ...updated[idx], ijazah: e.target.value };
-                              setDraft({ ...draft, jenjang: updated });
-                            }}
-                            className="w-full px-3 py-2 border border-stone-300 rounded bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-medium mb-1 text-stone-600">Uang Pangkal (Rp)</label>
-                          <input
-                            type="number"
-                            value={item.uangPangkal}
-                            onChange={(e) => {
-                              const updated = [...draft.jenjang];
-                              updated[idx] = { ...updated[idx], uangPangkal: Number(e.target.value) };
-                              setDraft({ ...draft, jenjang: updated });
-                            }}
-                            className="w-full px-3 py-2 border border-stone-300 rounded bg-white font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-medium mb-1 text-stone-600">SPP / Syahriyah Bulanan (Rp)</label>
-                          <input
-                            type="number"
-                            value={item.sppBulanan}
-                            onChange={(e) => {
-                              const updated = [...draft.jenjang];
-                              updated[idx] = { ...updated[idx], sppBulanan: Number(e.target.value) };
-                              setDraft({ ...draft, jenjang: updated });
-                            }}
-                            className="w-full px-3 py-2 border border-stone-300 rounded bg-white font-mono"
-                          />
-                        </div>
-                        {item.isBoardingTersedia && (
-                          <div className="sm:col-span-2">
-                            <label className="block font-medium mb-1 text-stone-600">Biaya Boarding / Asrama (Rp)</label>
-                            <input
-                              type="number"
-                              value={item.biayaBoarding || 0}
-                              onChange={(e) => {
-                                const updated = [...draft.jenjang];
-                                updated[idx] = { ...updated[idx], biayaBoarding: Number(e.target.value) };
-                                setDraft({ ...draft, jenjang: updated });
-                              }}
-                              className="w-full px-3 py-2 border border-stone-300 rounded bg-white font-mono"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <label className="flex items-center gap-2 text-xs font-semibold text-stone-700">
-                        <input type="checkbox" checked={item.hargaTerverifikasi !== false} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], hargaTerverifikasi: e.target.checked }; setDraft({ ...draft, jenjang: updated }); }} />
-                        Harga program sudah dikonfirmasi dan boleh ditayangkan
-                      </label>
-
-                      {item.jadwal && (
-                        <label className="block text-xs"><span className="mb-1 block font-medium text-stone-600">Pilihan jadwal (satu baris per jadwal)</span><textarea rows={5} value={item.jadwal.join("\n")} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], jadwal: e.target.value.split("\n").filter(Boolean) }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2" /></label>
-                      )}
-
-                      {item.opsiBiaya && (
-                        <div className="grid gap-3 text-xs sm:grid-cols-2">
-                          {item.opsiBiaya.map((opsi, opsiIndex) => <label key={opsi.label}><span className="mb-1 block font-medium text-stone-600">{opsi.label}</span><input type="number" value={opsi.nominal} onChange={(e) => { const updated = [...draft.jenjang]; const opsiBiaya = [...(updated[idx].opsiBiaya || [])]; opsiBiaya[opsiIndex] = { ...opsiBiaya[opsiIndex], nominal: Number(e.target.value) }; updated[idx] = { ...updated[idx], opsiBiaya }; setDraft({ ...draft, jenjang: updated }); }} className="w-full rounded border border-stone-300 bg-white px-3 py-2 font-mono" /></label>)}
-                        </div>
-                      )}
-
-                      <details className="text-xs text-stone-500"><summary className="cursor-pointer font-semibold">Catatan sumber data</summary><textarea rows={2} value={item.sumber || ""} onChange={(e) => { const updated = [...draft.jenjang]; updated[idx] = { ...updated[idx], sumber: e.target.value }; setDraft({ ...draft, jenjang: updated }); }} className="mt-2 w-full rounded border border-stone-300 bg-white px-3 py-2" /></details>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewProgram(createEmptyProgram());
+                          setProgramView("new");
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0F4C3A] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b3d2e] active:translate-y-px focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2"
+                      >
+                        <Plus className="size-4" />
+                        Tambah program
+                      </button>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="flex flex-wrap gap-3 border-b border-stone-100 bg-stone-50/70 px-6 py-4 sm:px-8">
+                      <span className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-stone-600 shadow-2xs">
+                        {draft.jenjang.length} program
+                      </span>
+                      <span className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-stone-600 shadow-2xs">
+                        {draft.jenjang.filter((item) => item.kategori === "kelas").length} kelas Al-Qur’an
+                      </span>
+                      <span className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                        {draft.jenjang.filter((item) => item.hargaTerverifikasi !== true).length} harga perlu konfirmasi
+                      </span>
+                    </div>
+
+                    <div className="p-4 sm:p-6">
+                      {draft.jenjang.length === 0 ? (
+                        <div className="rounded-2xl bg-stone-50 px-6 py-16 text-center">
+                          <GraduationCap className="mx-auto size-10 text-stone-300" />
+                          <h3 className="mt-4 font-serif text-xl font-bold text-emerald-950">Belum ada program</h3>
+                          <p className="mx-auto mt-2 max-w-md text-sm text-stone-500">
+                            Tambahkan program pertama agar orang tua dapat melihat pilihan pendidikan Baladz.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewProgram(createEmptyProgram());
+                              setProgramView("new");
+                            }}
+                            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0F4C3A] px-4 py-2.5 text-sm font-bold text-white"
+                          >
+                            <Plus className="size-4" />
+                            Buat program
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-stone-200">
+                          {draft.jenjang.map((item, index) => (
+                            <article
+                              key={item.id}
+                              className="group grid gap-4 py-5 first:pt-0 last:pb-0 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={item.gambar}
+                                alt={item.nama}
+                                className="aspect-[4/3] w-full rounded-xl bg-stone-100 object-cover sm:w-28"
+                              />
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                                    {item.kategori === "kelas" ? "Kelas Al-Qur’an" : "Jenjang sekolah"}
+                                  </span>
+                                  <span
+                                    className={
+                                      item.hargaTerverifikasi === true
+                                        ? "text-xs font-semibold text-emerald-700"
+                                        : "text-xs font-semibold text-amber-700"
+                                    }
+                                  >
+                                    {getProgramPriceLabel(item)}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setProgramView(index)}
+                                  className="mt-2 block max-w-full text-left font-serif text-lg font-bold text-emerald-950 transition group-hover:text-emerald-700 focus:outline-none focus:underline"
+                                >
+                                  {item.nama}
+                                </button>
+                                <p className="mt-1 line-clamp-2 max-w-2xl text-sm leading-relaxed text-stone-500">
+                                  {item.deskripsi}
+                                </p>
+                                <p className="mt-2 text-xs font-medium text-stone-400">
+                                  {item.tingkat} · {item.rentangUsia || "Peserta belum ditentukan"}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 sm:justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setProgramView(index)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-stone-100 px-3 py-2 text-xs font-bold text-stone-700 transition hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                                >
+                                  <Pencil className="size-3.5" />
+                                  Detail
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProgram(index)}
+                                  className="rounded-lg p-2 text-stone-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                  aria-label="Hapus program"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {programView === "new" && (
+                  <form onSubmit={handleCreateProgram} className="animate-in fade-in duration-200">
+                    <div className="border-b border-stone-200 p-6 sm:p-8">
+                      <button
+                        type="button"
+                        onClick={() => setProgramView(null)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 transition hover:text-stone-900 focus:outline-none focus:underline"
+                      >
+                        <ArrowLeft className="size-4" />
+                        Kembali ke daftar program
+                      </button>
+                      <h2 className="mt-4 font-serif text-2xl font-bold text-[#0F4C3A]">Tambah program baru</h2>
+                      <p className="mt-1 text-sm text-stone-500">Isi informasi program. Harga akan disembunyikan sampai diverifikasi.</p>
+                    </div>
+                    <div className="p-6 sm:p-8">
+                      <ProgramEditorFields
+                        value={newProgram}
+                        onChange={setNewProgram}
+                        onUploadComplete={() => showToast("Foto program berhasil diunggah.")}
+                      />
+                    </div>
+                    <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-stone-200 bg-white/95 p-4 backdrop-blur sm:flex-row sm:justify-end sm:px-8">
+                      <button type="button" onClick={() => setProgramView(null)} className="rounded-xl px-4 py-2.5 text-sm font-bold text-stone-600 hover:bg-stone-100">
+                        Batal
+                      </button>
+                      <button type="submit" className="rounded-xl bg-[#0F4C3A] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#0b3d2e] active:translate-y-px focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2">
+                        Tambah ke daftar
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {typeof programView === "number" && draft.jenjang[programView] && (
+                  <div className="animate-in fade-in duration-200">
+                    <div className="flex flex-col gap-4 border-b border-stone-200 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setProgramView(null)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 transition hover:text-stone-900 focus:outline-none focus:underline"
+                        >
+                          <ArrowLeft className="size-4" />
+                          Kembali ke daftar program
+                        </button>
+                        <h2 className="mt-4 text-wrap-balance font-serif text-2xl font-bold text-[#0F4C3A]">
+                          {draft.jenjang[programView].nama}
+                        </h2>
+                        <p className="mt-1 text-sm text-stone-500">Edit detail program dan periksa status harga sebelum menyimpan.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProgram(programView)}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        <Trash2 className="size-4" />
+                        Hapus program
+                      </button>
+                    </div>
+                    <div className="p-6 sm:p-8">
+                      <ProgramEditorFields
+                        value={draft.jenjang[programView]}
+                        onChange={(program) => {
+                          const programs = [...draft.jenjang];
+                          programs[programView] = program;
+                          setDraft({ ...draft, jenjang: programs });
+                        }}
+                        onUploadComplete={() => showToast("Foto program berhasil diunggah.")}
+                      />
+                    </div>
+                    <div className="sticky bottom-0 flex justify-end border-t border-stone-200 bg-white/95 p-4 backdrop-blur sm:px-8">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProgramView(null);
+                          showToast("Perubahan program tersimpan di draft.");
+                        }}
+                        className="rounded-xl bg-[#0F4C3A] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#0b3d2e] active:translate-y-px focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2"
+                      >
+                        Selesai mengedit
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
