@@ -1526,6 +1526,17 @@ export function AdminDashboard() {
                   </div>
 
                   <div>
+                    <label className="block font-semibold mb-1 text-stone-700">Cakupan Jenjang</label>
+                    <input
+                      type="text"
+                      value={draft.psb.cakupanJenjang}
+                      onChange={(e) => setDraft({ ...draft, psb: { ...draft.psb, cakupanJenjang: e.target.value } })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
+                      placeholder="Contoh: Semua jenjang"
+                    />
+                  </div>
+
+                  <div>
                     <label className="block font-semibold mb-1 text-stone-700">Tanggal Buka Pendaftaran</label>
                     <input
                       type="text"

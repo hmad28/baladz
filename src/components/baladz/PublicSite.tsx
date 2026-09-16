@@ -535,10 +535,10 @@ export function PublicSite() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-300">
                       <span>Informasi PSB</span>
-                      <span className="rounded-full bg-white/10 px-2 py-1">Perlu konfirmasi</span>
+                      <span className="rounded-full bg-white/10 px-2 py-1">Jadwal terkonfirmasi</span>
                     </div>
                     <h2 className="mt-2 text-2xl font-serif font-bold">Cek jadwal dan tahapan pendaftaran</h2>
-                    <p className="mt-2 text-sm leading-relaxed text-emerald-100">Timeline dua gelombang sudah disiapkan sebagai draft. Tahun dan penerapan per jenjang belum dipublikasikan sebagai informasi final.</p>
+                    <p className="mt-2 text-sm leading-relaxed text-emerald-100">Gelombang 1 berlangsung September 2026–Januari 2027 dan Gelombang 2 Januari–Mei 2027. Berlaku untuk {content.psb.cakupanJenjang.toLowerCase()}.</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <Link href="/psb" className="rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#0F4C3A] hover:bg-amber-50">Lihat info PSB</Link>

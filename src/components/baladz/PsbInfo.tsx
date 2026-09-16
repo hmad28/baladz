@@ -44,7 +44,13 @@ export function PsbInfo() {
 
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 sm:py-14">
         <section>
-          <div className="mb-5"><p className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Timeline terbaru</p><h2 className="mt-1 text-2xl font-serif font-bold text-[#0F4C3A]">Dua gelombang pendaftaran</h2></div>
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Timeline terkonfirmasi</p>
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-serif font-bold text-[#0F4C3A]">Dua gelombang pendaftaran</h2>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Berlaku untuk {content.psb.cakupanJenjang.toLowerCase()}</span>
+            </div>
+          </div>
           <div className="grid gap-5 lg:grid-cols-2">
             {content.psb.gelombang.map((gelombang) => (
               <article key={gelombang.nama} className="rounded-2xl bg-white p-6 ring-1 ring-stone-200">

@@ -121,6 +121,7 @@ export interface BaladzSiteContent {
     batasDaftarUlang: string;
     jadwalTerverifikasi: boolean;
     catatanKonfirmasi: string;
+    cakupanJenjang: string;
     gelombang: GelombangPsb[];
     pertemuanOrangTua: string;
     alurPendaftaran: AlurPsbStep[];
@@ -169,12 +170,12 @@ export interface BaladzSiteContent {
 }
 
 export const defaultSiteContent: BaladzSiteContent = {
-  contentVersion: 7,
+  contentVersion: 8,
   sourceNotes: {
     profil: "Rujukan: baladz.net, diperiksa 15 September 2026.",
     lokasi: "Rujukan: baladz.net. Alamat rinci dan foto kunjungan menunggu verifikasi tim Baladz.",
     program: "PAUD/TK/SD/SMP: flyer terbaru dan konfirmasi tim Baladz 16 September 2026.",
-    psb: "Catatan meeting tim Baladz. Tahun, penerapan per jenjang, dan biaya formulir belum final.",
+    psb: "Timeline dan penerapan untuk semua jenjang dikonfirmasi langsung oleh tim Baladz pada 16 September 2026. Kuota dan rincian berkas tetap mengikuti informasi lanjutan.",
     kontak: "Nomor dan rekening terbaru diberikan langsung oleh tim Baladz.",
   },
   lembaga: {
@@ -218,20 +219,21 @@ export const defaultSiteContent: BaladzSiteContent = {
   },
 
   psb: {
-    tahunAjaran: "2026/2027 — perlu konfirmasi",
+    tahunAjaran: "2026/2027",
     statusPendaftaran: "Tutup",
-    tanggalBuka: "10 September",
-    tanggalTutup: "31 Maret",
+    tanggalBuka: "10 September 2026",
+    tanggalTutup: "31 Maret 2027",
     kuotaSantri: 0,
     biayaPendaftaran: 0,
-    batasDaftarUlang: "10 Mei",
-    jadwalTerverifikasi: false,
-    catatanKonfirmasi: "Draft jadwal dari meeting. Konfirmasi tahun, penerapan per jenjang, kuota, dan biaya formulir sebelum ditayangkan final.",
+    batasDaftarUlang: "10 Mei 2027",
+    jadwalTerverifikasi: true,
+    catatanKonfirmasi: "Tahun timeline dan penerapan untuk semua jenjang dikonfirmasi tim Baladz pada 16 September 2026.",
+    cakupanJenjang: "Semua jenjang",
     gelombang: [
-      { nama: "Gelombang 1", pendaftaranBerkas: "10 September–30 November", seleksi: "7 Desember · seleksi via video call", pengumuman: "14 Desember", pelunasan: "20 Januari" },
-      { nama: "Gelombang 2", pendaftaranBerkas: "21 Januari–31 Maret", seleksi: "3 April · seleksi via video call", pengumuman: "10 April", pelunasan: "10 Mei" },
+      { nama: "Gelombang 1", pendaftaranBerkas: "10 September–30 November 2026", seleksi: "7 Desember 2026 · seleksi via video call", pengumuman: "14 Desember 2026", pelunasan: "20 Januari 2027" },
+      { nama: "Gelombang 2", pendaftaranBerkas: "21 Januari–31 Maret 2027", seleksi: "3 April 2027 · seleksi via video call", pengumuman: "10 April 2027", pelunasan: "10 Mei 2027" },
     ],
-    pertemuanOrangTua: "20 Juni · pertemuan orang tua dan pemberkasan",
+    pertemuanOrangTua: "20 Juni 2027 · pertemuan orang tua dan pemberkasan",
     alurPendaftaran: [
       {
         nomor: 1,
@@ -251,7 +253,7 @@ export const defaultSiteContent: BaladzSiteContent = {
       {
         nomor: 4,
         judul: "Seleksi via Video Call",
-        keterangan: "Ikuti seleksi sesuai jadwal gelombang. Tahun dan penerapan per jenjang masih menunggu konfirmasi.",
+        keterangan: "Ikuti seleksi via video call sesuai jadwal gelombang. Jadwal berlaku untuk semua jenjang.",
       },
       {
         nomor: 5,
@@ -264,7 +266,7 @@ export const defaultSiteContent: BaladzSiteContent = {
     ],
     materiSeleksi: [
       "Seleksi dilakukan melalui video call sesuai jadwal gelombang.",
-      "Materi seleksi dan penerapannya per jenjang menunggu konfirmasi final tim Baladz.",
+      "Materi seleksi masih menunggu konfirmasi final tim Baladz.",
     ],
     rekeningPembayaran: {
       bank: "Rekening Resmi Yayasan",
@@ -544,8 +546,8 @@ export const defaultSiteContent: BaladzSiteContent = {
   popup: {
     aktif: true,
     modeTampilan: "gambar_teks",
-    judul: "Informasi PSB Sedang Diperbarui",
-    subjudul: "Tahun ajaran dan penerapan jadwal per jenjang sedang dikonfirmasi. Tim Baladz siap membantu menjawab pertanyaan Anda.",
+    judul: "Jadwal PSB 2026/2027",
+    subjudul: "Gelombang 1 berlangsung September 2026–Januari 2027 dan Gelombang 2 Januari–Mei 2027. Jadwal berlaku untuk semua jenjang.",
     gambarPoster: "/images/baladz/gallery-class.jpg",
     teksCta: "Tanyakan PSB via WhatsApp",
     nomorWaCta: "081234598187",
