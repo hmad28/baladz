@@ -75,6 +75,7 @@ function createEmptyProgram(): JenjangPendidikan {
     kategori: "jenjang",
     jadwal: [],
     opsiBiaya: [],
+    paketBiaya: [],
     hargaTerverifikasi: false,
     sumber: "Catatan internal: program baru, menunggu verifikasi tim Baladz.",
   };
@@ -82,6 +83,9 @@ function createEmptyProgram(): JenjangPendidikan {
 
 function getProgramPriceLabel(program: JenjangPendidikan): string {
   if (program.hargaTerverifikasi !== true) return "Harga belum ditayangkan";
+  if (program.sppBulananMaksimal && program.sppBulananMaksimal > program.sppBulanan) {
+    return `Rp ${program.sppBulanan.toLocaleString("id-ID")}–Rp ${program.sppBulananMaksimal.toLocaleString("id-ID")}/bulan`;
+  }
   if (program.sppBulanan > 0) {
     return `Rp ${program.sppBulanan.toLocaleString("id-ID")}/bulan`;
   }
@@ -186,13 +190,24 @@ function ProgramEditorFields({ value, onChange, onUploadComplete }: ProgramEdito
             <span className="mb-1.5 block text-xs font-semibold text-stone-700">SPP / biaya bulanan</span>
             <input type="number" min="0" value={value.sppBulanan} onChange={(event) => update({ sppBulanan: Number(event.target.value) })} className={`${fieldClass} font-mono tabular-nums`} />
           </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-stone-700">SPP maksimal <span className="font-normal text-stone-400">— opsional untuk rentang</span></span>
+            <input
+              type="number"
+              min="0"
+              value={value.sppBulananMaksimal ?? ""}
+              onChange={(event) => update({ sppBulananMaksimal: event.target.value ? Number(event.target.value) : undefined })}
+              className={`${fieldClass} font-mono tabular-nums`}
+              placeholder="Kosongkan jika bukan rentang"
+            />
+          </label>
           <label className="flex items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 text-sm font-semibold text-stone-700 sm:col-span-2">
             <input type="checkbox" checked={value.isBoardingTersedia} onChange={(event) => update({ isBoardingTersedia: event.target.checked })} className="size-4 accent-emerald-800" />
             Tersedia asrama / boarding
           </label>
           {value.isBoardingTersedia && (
             <label className="block sm:col-span-2">
-              <span className="mb-1.5 block text-xs font-semibold text-stone-700">Biaya boarding</span>
+              <span className="mb-1.5 block text-xs font-semibold text-stone-700">SPP boarding / bulan <span className="font-normal text-stone-400">— bukan biaya tambahan</span></span>
               <input type="number" min="0" value={value.biayaBoarding || 0} onChange={(event) => update({ biayaBoarding: Number(event.target.value) })} className={`${fieldClass} font-mono tabular-nums`} />
             </label>
           )}
@@ -212,6 +227,141 @@ function ProgramEditorFields({ value, onChange, onUploadComplete }: ProgramEdito
               <input value={option.label} onChange={(event) => { const options = [...(value.opsiBiaya || [])]; options[optionIndex] = { ...option, label: event.target.value }; update({ opsiBiaya: options }); }} className={fieldClass} aria-label={`Nama pilihan biaya ${optionIndex + 1}`} />
               <input type="number" min="0" value={option.nominal} onChange={(event) => { const options = [...(value.opsiBiaya || [])]; options[optionIndex] = { ...option, nominal: Number(event.target.value) }; update({ opsiBiaya: options }); }} className={`${fieldClass} font-mono tabular-nums`} aria-label={`Nominal pilihan biaya ${optionIndex + 1}`} />
               <button type="button" onClick={() => update({ opsiBiaya: (value.opsiBiaya || []).filter((_, index) => index !== optionIndex) })} className="rounded-lg px-3 text-xs font-bold text-red-600 hover:bg-red-50" aria-label={`Hapus pilihan biaya ${optionIndex + 1}`}>Hapus</button>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-4 rounded-2xl border border-stone-200 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-stone-900">Rincian biaya per paket</p>
+              <p className="mt-1 text-xs leading-relaxed text-stone-500">Pisahkan setiap komponen. Jangan gabungkan biaya awal, bulanan, atau semester.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => update({ paketBiaya: [...(value.paketBiaya || []), { nama: "Paket baru", komponen: [] }] })}
+              className="shrink-0 text-xs font-bold text-emerald-800 hover:text-emerald-950"
+            >
+              + Tambah paket
+            </button>
+          </div>
+
+          {(value.paketBiaya || []).map((paket, paketIndex) => (
+            <div key={`${paket.nama}-${paketIndex}`} className="space-y-3 rounded-xl bg-stone-50 p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  value={paket.nama}
+                  onChange={(event) => {
+                    const packages = [...(value.paketBiaya || [])];
+                    packages[paketIndex] = { ...paket, nama: event.target.value };
+                    update({ paketBiaya: packages });
+                  }}
+                  className={`${fieldClass} font-bold`}
+                  aria-label={`Nama paket biaya ${paketIndex + 1}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => update({ paketBiaya: (value.paketBiaya || []).filter((_, index) => index !== paketIndex) })}
+                  className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                  aria-label={`Hapus paket biaya ${paketIndex + 1}`}
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {paket.komponen.map((komponen, komponenIndex) => (
+                  <div key={`${komponen.nama}-${komponenIndex}`} className="grid gap-2 sm:grid-cols-[1fr_10rem_10rem_8rem_auto]">
+                    <input
+                      value={komponen.nama}
+                      onChange={(event) => {
+                        const packages = [...(value.paketBiaya || [])];
+                        const components = [...paket.komponen];
+                        components[komponenIndex] = { ...komponen, nama: event.target.value };
+                        packages[paketIndex] = { ...paket, komponen: components };
+                        update({ paketBiaya: packages });
+                      }}
+                      className={fieldClass}
+                      placeholder="Nama komponen"
+                      aria-label={`Nama komponen biaya ${komponenIndex + 1}`}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={komponen.nominal}
+                      onChange={(event) => {
+                        const packages = [...(value.paketBiaya || [])];
+                        const components = [...paket.komponen];
+                        components[komponenIndex] = { ...komponen, nominal: Number(event.target.value) };
+                        packages[paketIndex] = { ...paket, komponen: components };
+                        update({ paketBiaya: packages });
+                      }}
+                      className={`${fieldClass} font-mono tabular-nums`}
+                      aria-label={`Nominal komponen biaya ${komponenIndex + 1}`}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={komponen.nominalMaksimal ?? ""}
+                      onChange={(event) => {
+                        const packages = [...(value.paketBiaya || [])];
+                        const components = [...paket.komponen];
+                        components[komponenIndex] = {
+                          ...komponen,
+                          nominalMaksimal: event.target.value ? Number(event.target.value) : undefined,
+                        };
+                        packages[paketIndex] = { ...paket, komponen: components };
+                        update({ paketBiaya: packages });
+                      }}
+                      className={`${fieldClass} font-mono tabular-nums`}
+                      placeholder="Maksimal"
+                      aria-label={`Nominal maksimal komponen biaya ${komponenIndex + 1}`}
+                    />
+                    <input
+                      value={komponen.satuan || ""}
+                      onChange={(event) => {
+                        const packages = [...(value.paketBiaya || [])];
+                        const components = [...paket.komponen];
+                        components[komponenIndex] = { ...komponen, satuan: event.target.value };
+                        packages[paketIndex] = { ...paket, komponen: components };
+                        update({ paketBiaya: packages });
+                      }}
+                      className={fieldClass}
+                      placeholder="per bulan"
+                      aria-label={`Satuan komponen biaya ${komponenIndex + 1}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const packages = [...(value.paketBiaya || [])];
+                        packages[paketIndex] = {
+                          ...paket,
+                          komponen: paket.komponen.filter((_, index) => index !== komponenIndex),
+                        };
+                        update({ paketBiaya: packages });
+                      }}
+                      className="rounded-lg px-3 text-xs font-bold text-red-600 hover:bg-red-50"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const packages = [...(value.paketBiaya || [])];
+                  packages[paketIndex] = {
+                    ...paket,
+                    komponen: [...paket.komponen, { nama: "Komponen baru", nominal: 0, satuan: "" }],
+                  };
+                  update({ paketBiaya: packages });
+                }}
+                className="text-xs font-bold text-emerald-800 hover:text-emerald-950"
+              >
+                + Tambah komponen biaya
+              </button>
             </div>
           ))}
         </div>

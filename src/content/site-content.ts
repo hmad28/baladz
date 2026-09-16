@@ -9,6 +9,18 @@
  * Cukup simpan file ini, maka website akan otomatis terupdate.
  */
 
+export interface KomponenBiayaProgram {
+  nama: string;
+  nominal: number;
+  nominalMaksimal?: number;
+  satuan?: string;
+}
+
+export interface PaketBiayaProgram {
+  nama: string;
+  komponen: KomponenBiayaProgram[];
+}
+
 export interface JenjangPendidikan {
   id: string;
   nama: string;
@@ -18,6 +30,7 @@ export interface JenjangPendidikan {
   ijazah: string;
   uangPangkal: number;
   sppBulanan: number;
+  sppBulananMaksimal?: number;
   biayaBoarding?: number;
   keunggulan: string[];
   gambar: string;
@@ -25,6 +38,7 @@ export interface JenjangPendidikan {
   kategori?: "jenjang" | "kelas";
   jadwal?: string[];
   opsiBiaya?: { label: string; nominal: number }[];
+  paketBiaya?: PaketBiayaProgram[];
   hargaTerverifikasi?: boolean;
   sumber?: string;
 }
@@ -155,11 +169,11 @@ export interface BaladzSiteContent {
 }
 
 export const defaultSiteContent: BaladzSiteContent = {
-  contentVersion: 5,
+  contentVersion: 7,
   sourceNotes: {
     profil: "Rujukan: baladz.net, diperiksa 15 September 2026.",
     lokasi: "Rujukan: baladz.net. Alamat rinci dan foto kunjungan menunggu verifikasi tim Baladz.",
-    program: "PAUD/TK/SD: baladz.net. SMP, Reguler, dan Privat: catatan meeting tim Baladz.",
+    program: "PAUD/TK/SD/SMP: flyer terbaru dan konfirmasi tim Baladz 16 September 2026.",
     psb: "Catatan meeting tim Baladz. Tahun, penerapan per jenjang, dan biaya formulir belum final.",
     kontak: "Nomor dan rekening terbaru diberikan langsung oleh tim Baladz.",
   },
@@ -271,6 +285,7 @@ export const defaultSiteContent: BaladzSiteContent = {
       ijazah: "Ijazah Resmi Baladz",
       uangPangkal: 7500000,
       sppBulanan: 250000,
+      sppBulananMaksimal: 380000,
       keunggulan: [
         "Metode Listening Al-Qur'an terpadu",
         "Pembiasaan adab dan doa sehari-hari",
@@ -280,8 +295,18 @@ export const defaultSiteContent: BaladzSiteContent = {
       gambar: "/images/baladz/raw-PAUDQ-1.jpg",
       isBoardingTersedia: false,
       kategori: "jenjang",
-      hargaTerverifikasi: false,
-      sumber: "Profil jenjang: baladz.net. Harga PSB terbaru belum dikonfirmasi tim Baladz.",
+      paketBiaya: [
+        {
+          nama: "Program PAUD",
+          komponen: [
+            { nama: "Pendaftaran", nominal: 150000 },
+            { nama: "Infak Uang Pangkal", nominal: 7500000 },
+            { nama: "SPP PAUD", nominal: 250000, nominalMaksimal: 380000, satuan: "per bulan" },
+          ],
+        },
+      ],
+      hargaTerverifikasi: true,
+      sumber: "Biaya dikonfirmasi langsung oleh tim Baladz pada 16 September 2026. SPP PAUD ditampilkan sebagai rentang Rp250.000–Rp380.000 per bulan.",
     },
     {
       id: "tk-alquran",
@@ -302,8 +327,18 @@ export const defaultSiteContent: BaladzSiteContent = {
       gambar: "/images/baladz/raw-LQ_1.jpg",
       isBoardingTersedia: false,
       kategori: "jenjang",
-      hargaTerverifikasi: false,
-      sumber: "Profil jenjang: baladz.net. Harga PSB terbaru belum dikonfirmasi tim Baladz.",
+      paketBiaya: [
+        {
+          nama: "Program TK",
+          komponen: [
+            { nama: "Pendaftaran", nominal: 150000 },
+            { nama: "Infak Uang Pangkal", nominal: 7500000 },
+            { nama: "Syahriyah/SPP Bulanan", nominal: 380000, satuan: "per bulan" },
+          ],
+        },
+      ],
+      hargaTerverifikasi: true,
+      sumber: "Flyer TK TA 2026/2027, kolom Juni 2026. Angka diminta tetap digunakan oleh tim Baladz pada 16 September 2026; jangan diberi label biaya TA 2027/2028.",
     },
     {
       id: "sd-tahfidz",
@@ -313,9 +348,9 @@ export const defaultSiteContent: BaladzSiteContent = {
       deskripsi:
         "Program pendidikan dasar unggulan yang memadukan tahfidz intensif bersanad dengan kurikulum akademik nasional. Tersedia fasilitas asrama (boarding).",
       ijazah: "Ijazah Baladz & Ijazah Negara Resmi",
-      uangPangkal: 16800000,
+      uangPangkal: 19000000,
       sppBulanan: 980000,
-      biayaBoarding: 400000,
+      biayaBoarding: 1380000,
       keunggulan: [
         "Mendapatkan 2 Ijazah (Baladz & Ijazah Negara)",
         "Tilawah bersanad 30 Juz dibimbing asatidzah berkompeten",
@@ -325,8 +360,28 @@ export const defaultSiteContent: BaladzSiteContent = {
       gambar: "/images/baladz/gallery-class.jpg",
       isBoardingTersedia: true,
       kategori: "jenjang",
-      hargaTerverifikasi: false,
-      sumber: "Profil jenjang: baladz.net. Harga TA 2027/2028 belum boleh mengambil flyer lama.",
+      paketBiaya: [
+        {
+          nama: "Fullday",
+          komponen: [
+            { nama: "Pendaftaran", nominal: 350000 },
+            { nama: "Infak Program", nominal: 19000000 },
+            { nama: "SPP", nominal: 980000, satuan: "per bulan" },
+            { nama: "Ekskul/Outing", nominal: 2900000 },
+          ],
+        },
+        {
+          nama: "Boarding",
+          komponen: [
+            { nama: "Pendaftaran", nominal: 350000 },
+            { nama: "Infak Program", nominal: 19800000 },
+            { nama: "SPP", nominal: 1380000, satuan: "per bulan" },
+            { nama: "Ekskul/Outing", nominal: 3700000 },
+          ],
+        },
+      ],
+      hargaTerverifikasi: true,
+      sumber: "Flyer SDTahfidz TA 2026/2027 dan instruksi tim Baladz 16 September 2026. Tampilkan tanpa klaim bahwa angka ini khusus TA 2027/2028.",
     },
     {
       id: "smp-alquran",
@@ -335,8 +390,9 @@ export const defaultSiteContent: BaladzSiteContent = {
       rentangUsia: "Lulusan SD / sederajat",
       deskripsi: "Program lanjutan yang memadukan target hafalan, bahasa, hadis, dan pembinaan akhlak dalam lingkungan Ma’had Baladz.",
       ijazah: "Menunggu konfirmasi tim Baladz",
-      uangPangkal: 0,
-      sppBulanan: 0,
+      uangPangkal: 17000000,
+      sppBulanan: 977000,
+      biayaBoarding: 1770000,
       keunggulan: [
         "Target hafalan 30 juz mutqin",
         "Hadis Arba’in dan 100 hadis umum",
@@ -344,10 +400,30 @@ export const defaultSiteContent: BaladzSiteContent = {
         "Pembinaan akhlakul karimah",
       ],
       gambar: "/images/baladz/gallery-quran.jpg",
-      isBoardingTersedia: false,
+      isBoardingTersedia: true,
       kategori: "jenjang",
-      hargaTerverifikasi: false,
-      sumber: "Catatan meeting tim Baladz. Uang pangkal berbeda antara catatan dan flyer; jangan ditayangkan sebelum dikonfirmasi.",
+      paketBiaya: [
+        {
+          nama: "Reguler",
+          komponen: [
+            { nama: "Pendaftaran", nominal: 300000 },
+            { nama: "Infak Uang Pangkal", nominal: 17000000 },
+            { nama: "SPP", nominal: 977000, satuan: "per bulan" },
+            { nama: "Ekskul/Outing", nominal: 1900000, satuan: "per semester" },
+          ],
+        },
+        {
+          nama: "Boarding",
+          komponen: [
+            { nama: "Pendaftaran", nominal: 300000 },
+            { nama: "Infak Uang Pangkal", nominal: 17000000 },
+            { nama: "SPP", nominal: 1770000, satuan: "per bulan" },
+            { nama: "Ekskul/Outing", nominal: 1900000, satuan: "per semester" },
+          ],
+        },
+      ],
+      hargaTerverifikasi: true,
+      sumber: "Flyer SMP dan instruksi final tim Baladz 16 September 2026. Gunakan uang pangkal Rp17.000.000 dan abaikan promo pada flyer.",
     },
     {
       id: "kelas-reguler",

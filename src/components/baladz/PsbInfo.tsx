@@ -9,6 +9,13 @@ function formatRupiah(num: number): string {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
 }
 
+function formatRupiahRange(minimum: number, maximum?: number): string {
+  if (maximum && maximum > minimum) {
+    return `${formatRupiah(minimum)}–${formatRupiah(maximum)}`;
+  }
+  return formatRupiah(minimum);
+}
+
 export function PsbInfo() {
   const { content } = useSiteContent();
   const whatsappUrl = `https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${encodeURIComponent("Assalamu'alaikum tim PSB Baladz, saya ingin menanyakan jadwal dan persyaratan pendaftaran terbaru.")}`;
@@ -56,22 +63,46 @@ export function PsbInfo() {
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-2xl bg-white p-6 ring-1 ring-stone-200 sm:p-8">
             <h2 className="text-xl font-serif font-bold text-[#0F4C3A]">Biaya program</h2>
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-stone-200 text-xs text-stone-500"><tr><th className="py-3 pr-4">Program</th><th className="py-3">Biaya</th></tr></thead>
-                <tbody className="divide-y divide-stone-100">
-                  {content.jenjang.map((program) => (
-                    <tr key={program.id}>
-                      <td className="py-4 pr-4 font-semibold text-stone-900">{program.nama}</td>
-                      <td className="py-4 text-stone-700">
-                        {program.hargaTerverifikasi === false ? <span className="font-semibold text-amber-800">Menunggu konfirmasi</span> : program.opsiBiaya ? (
-                          <div className="space-y-1">{program.opsiBiaya.map((opsi) => <div key={opsi.label}>{opsi.label}: <strong>{formatRupiah(opsi.nominal)}/bulan</strong></div>)}</div>
-                        ) : <strong>{formatRupiah(program.sppBulanan)}/bulan</strong>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <p className="mt-2 text-xs leading-relaxed text-stone-500">Rincian ditampilkan per komponen tanpa menjumlahkan biaya awal, bulanan, atau semester. Tidak ada klaim tahun ajaran untuk tabel biaya ini sampai dikonfirmasi tim Baladz.</p>
+            <div className="mt-6 space-y-4">
+              {content.jenjang.map((program) => (
+                <article key={program.id} className="rounded-xl border border-stone-200 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h3 className="font-bold text-stone-900">{program.nama}</h3>
+                    {program.hargaTerverifikasi !== true && (
+                      <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800">Menunggu konfirmasi</span>
+                    )}
+                  </div>
+
+                  {program.hargaTerverifikasi === true && program.paketBiaya && program.paketBiaya.length > 0 ? (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {program.paketBiaya.map((paket) => (
+                        <div key={paket.nama} className="rounded-xl bg-[#FAF8F5] p-4">
+                          <h4 className="text-sm font-bold text-[#0F4C3A]">{paket.nama}</h4>
+                          <dl className="mt-3 space-y-2 text-xs">
+                            {paket.komponen.map((komponen) => (
+                              <div key={`${paket.nama}-${komponen.nama}`} className="flex items-start justify-between gap-3 border-b border-stone-200 pb-2 last:border-0 last:pb-0">
+                                <dt className="text-stone-500">{komponen.nama}</dt>
+                                <dd className="text-right font-semibold text-stone-900">{formatRupiahRange(komponen.nominal, komponen.nominalMaksimal)}{komponen.satuan ? <span className="block font-normal text-stone-500">{komponen.satuan}</span> : null}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </div>
+                      ))}
+                    </div>
+                  ) : program.hargaTerverifikasi === true && program.opsiBiaya ? (
+                    <dl className="mt-3 space-y-2 text-sm">
+                      {program.opsiBiaya.map((opsi) => (
+                        <div key={opsi.label} className="flex justify-between gap-3"><dt className="text-stone-500">{opsi.label}</dt><dd className="font-semibold">{formatRupiah(opsi.nominal)}/bulan</dd></div>
+                      ))}
+                    </dl>
+                  ) : program.hargaTerverifikasi === true ? (
+                    <p className="mt-3 text-sm text-stone-600">SPP: <strong className="text-stone-900">{formatRupiah(program.sppBulanan)}/bulan</strong></p>
+                  ) : (
+                    <p className="mt-3 text-xs leading-relaxed text-stone-500">Rincian biaya program masih menunggu konfirmasi.</p>
+                  )}
+                </article>
+              ))}
             </div>
           </div>
 

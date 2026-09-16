@@ -13,7 +13,7 @@ import {
   type BaladzSiteContent,
 } from "@/content/site-content";
 
-const storageKey = "baladz-site-content-v5";
+const storageKey = "baladz-site-content-v7";
 
 interface SiteContentContextValue {
   content: BaladzSiteContent;

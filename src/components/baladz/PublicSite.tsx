@@ -30,6 +30,13 @@ function formatRupiah(num: number): string {
   }).format(num);
 }
 
+function formatRupiahRange(minimum: number, maximum?: number): string {
+  if (maximum && maximum > minimum) {
+    return `${formatRupiah(minimum)}–${formatRupiah(maximum)}`;
+  }
+  return formatRupiah(minimum);
+}
+
 export function PublicSite() {
   const { content } = useSiteContent();
 
@@ -197,7 +204,7 @@ export function PublicSite() {
                   />
                 </div>
                 <span className="max-w-[18rem] text-center text-[10px] uppercase tracking-[0.16em] leading-snug text-emerald-800 font-semibold mt-0.5">
-                  Baladill Huffaadz Home School
+                  Baladil Huffaadz Homeschool
                 </span>
               </button>
             </div>
@@ -480,11 +487,37 @@ export function PublicSite() {
                               {(jenjang.jadwal || jenjang.keunggulan).map((item) => <li key={item}>• {item}</li>)}
                             </ul>
                           )}
+                          {jenjang.hargaTerverifikasi === true && jenjang.paketBiaya && jenjang.paketBiaya.length > 0 && (
+                            <details className="mt-4 rounded-xl bg-stone-50 p-3 text-xs text-stone-700">
+                              <summary className="cursor-pointer font-bold text-emerald-900">Lihat rincian biaya</summary>
+                              <div className="mt-3 space-y-3">
+                                {jenjang.paketBiaya.map((paket) => (
+                                  <div key={paket.nama}>
+                                    <p className="font-bold text-stone-900">{paket.nama}</p>
+                                    <dl className="mt-1.5 space-y-1">
+                                      {paket.komponen.map((komponen) => (
+                                        <div key={`${paket.nama}-${komponen.nama}`} className="flex items-start justify-between gap-3">
+                                          <dt className="text-stone-500">{komponen.nama}</dt>
+                                          <dd className="text-right font-semibold">{formatRupiahRange(komponen.nominal, komponen.nominalMaksimal)}{komponen.satuan ? ` · ${komponen.satuan}` : ""}</dd>
+                                        </div>
+                                      ))}
+                                    </dl>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
                           <div className="mt-4 flex items-end justify-between gap-3 border-t border-stone-100 pt-4">
                             <div>
-                              <p className="text-[11px] text-stone-500">{jenjang.hargaTerverifikasi === false ? "Status harga" : "Biaya mulai"}</p>
+                              <p className="text-[11px] text-stone-500">
+                                {jenjang.hargaTerverifikasi === false
+                                  ? "Status harga"
+                                  : jenjang.sppBulananMaksimal
+                                    ? "Rentang SPP"
+                                    : "Biaya bulanan mulai"}
+                              </p>
                               <p className="font-bold text-stone-900">
-                                {jenjang.hargaTerverifikasi === false ? "Menunggu konfirmasi" : `${formatRupiah(jenjang.sppBulanan)}/bulan`}
+                                {jenjang.hargaTerverifikasi === false ? "Menunggu konfirmasi" : `${formatRupiahRange(jenjang.sppBulanan, jenjang.sppBulananMaksimal)}/bulan`}
                               </p>
                               {jenjang.opsiBiaya?.map((opsi) => <p key={opsi.label} className="mt-1 text-[11px] text-stone-500">{opsi.label}: {formatRupiah(opsi.nominal)}</p>)}
                             </div>
