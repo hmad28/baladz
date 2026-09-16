@@ -372,12 +372,6 @@ function ProgramEditorFields({ value, onChange, onUploadComplete }: ProgramEdito
         </label>
       </section>
 
-      <section className="border-t border-stone-200 pt-6">
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-stone-700">Catatan sumber internal</span>
-          <textarea rows={3} value={value.sumber || ""} onChange={(event) => update({ sumber: event.target.value })} className={fieldClass} placeholder="Sumber data dan status konfirmasi" />
-        </label>
-      </section>
     </div>
   );
 }
@@ -874,31 +868,41 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
-                  <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Catatan internal</p>
-                  <h3 className="mt-1 text-lg font-serif font-bold text-[#0F4C3A]">Sumber & status verifikasi konten</h3>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {Object.entries(draft.sourceNotes).map(([key, note]) => (
-                      <label key={key} className="block rounded-xl bg-stone-50 p-4 text-xs">
-                        <span className="mb-2 block font-bold capitalize text-stone-700">{key}</span>
-                        <textarea rows={3} value={note} onChange={(e) => setDraft({ ...draft, sourceNotes: { ...draft.sourceNotes, [key]: e.target.value } })} className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-600" />
+                <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Identitas beranda</p>
+                      <h3 className="mt-1 text-lg font-serif font-bold text-[#0F4C3A]">Foto hero homepage</h3>
+                      <p className="mt-1 text-sm text-stone-500">Ganti foto utama yang tampil di bagian hero website.</p>
+                    </div>
+                    <ImageIcon className="mt-1 h-5 w-5 shrink-0 text-emerald-700" />
+                  </div>
+                  <div className="mt-5 grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={draft.lembaga.fotoHero || "/images/baladz/about.jpg"} alt="Preview foto hero" className="aspect-[4/3] w-full rounded-xl bg-stone-100 object-cover" />
+                    <div className="space-y-3">
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-semibold text-stone-700">URL foto</span>
+                        <input value={draft.lembaga.fotoHero} onChange={(e) => setDraft({ ...draft, lembaga: { ...draft.lembaga, fotoHero: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm" placeholder="https://... atau /images/baladz/..." />
                       </label>
-                    ))}
+                      <div className="flex items-center justify-between rounded-xl border border-dashed border-stone-300 bg-stone-50 px-3 py-2">
+                        <span className="text-xs text-stone-500">Atau unggah foto dokumentasi</span>
+                        <UploadButton
+                          endpoint="imageUploader"
+                          onClientUploadComplete={(result) => {
+                            const file = result?.[0];
+                            const url = file?.ufsUrl || file?.url;
+                            if (url) {
+                              setDraft({ ...draft, lembaga: { ...draft.lembaga, fotoHero: url } });
+                              showToast("Foto hero berhasil di-upload! Jangan lupa simpan perubahan.");
+                            }
+                          }}
+                          onUploadError={(error: Error) => alert(`Upload error: ${error.message}`)}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div className="border-t border-stone-200 pt-5">
-                  <h3 className="mb-3 text-sm font-bold text-stone-800">Teks tombol & pesan WhatsApp</h3>
-                  <div className="grid gap-4 text-xs sm:grid-cols-2">
-                    {([
-                      ["teksDaftar", "Teks tombol pendaftaran"],
-                      ["teksWhatsapp", "Teks tombol WhatsApp"],
-                      ["teksKunjungan", "Teks tombol kunjungan"],
-                    ] as const).map(([field, label]) => <label key={field}><span className="mb-1 block font-semibold text-stone-700">{label}</span><input value={draft.cta[field]} onChange={(e) => setDraft({ ...draft, cta: { ...draft.cta, [field]: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2" /></label>)}
-                    <label className="sm:col-span-2"><span className="mb-1 block font-semibold text-stone-700">Pesan konsultasi</span><textarea rows={2} value={draft.cta.pesanWhatsapp} onChange={(e) => setDraft({ ...draft, cta: { ...draft.cta, pesanWhatsapp: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2" /></label>
-                    <label className="sm:col-span-2"><span className="mb-1 block font-semibold text-stone-700">Pesan kunjungan</span><textarea rows={2} value={draft.cta.pesanKunjungan} onChange={(e) => setDraft({ ...draft, cta: { ...draft.cta, pesanKunjungan: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2" /></label>
-                  </div>
-                </div>
+                </section>
               </div>
             )}
 

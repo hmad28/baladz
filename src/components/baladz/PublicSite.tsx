@@ -418,7 +418,7 @@ export function PublicSite() {
                   <div className="lg:col-span-5">
                     <div className="relative rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-stone-100 aspect-4/3 sm:aspect-16/10 lg:aspect-4/3">
                       <Image
-                        src="/images/baladz/about.jpg"
+                        src={content.lembaga.fotoHero || "/images/baladz/about.jpg"}
                         alt="KBM Santri Baladz"
                         fill
                         className="object-cover"

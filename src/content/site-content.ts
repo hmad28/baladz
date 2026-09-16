@@ -99,6 +99,7 @@ export interface BaladzSiteContent {
     tagline: string;
     yayasan: string;
     deskripsi: string;
+    fotoHero: string;
     poinKeunggulan: string[];
     lokasiKbm: {
       nama: string;
@@ -180,6 +181,7 @@ export const defaultSiteContent: BaladzSiteContent = {
   },
   lembaga: {
     nama: "Baladil Huffaadz (Baladz)",
+    fotoHero: "/images/baladz/about.jpg",
     tagline: "Pendidikan Al-Qur’an Bersanad untuk Generasi Qur'ani",
     yayasan: "Yayasan Baladz Cerdas Mulia",
     deskripsi:
