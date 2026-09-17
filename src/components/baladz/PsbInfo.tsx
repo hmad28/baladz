@@ -159,7 +159,7 @@ export function PsbInfo() {
         </section>
 
         {/* SECTION 2: BIAYA PROGRAM & PEMBAYARAN */}
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className="grid grid-cols-1 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-6 lg:gap-8 items-start">
           <div className="rounded-2xl bg-white p-6 ring-1 ring-stone-200 sm:p-8 space-y-6">
             <div>
               <h2 className="text-xl font-serif font-bold text-[#0F4C3A]">Rincian Biaya Pendidikan</h2>
@@ -238,11 +238,14 @@ export function PsbInfo() {
             </div>
           </div>
 
-          {/* Pembayaran & Rekening Resmi */}
-          <div className="rounded-2xl bg-[#0F4C3A] p-6 text-white sm:p-8 flex flex-col justify-between shadow-xs">
+          {/* Pembayaran & Rekening Resmi (Sticky Sidebar on Desktop) */}
+          <div className="h-fit self-start lg:sticky lg:top-8 rounded-2xl bg-[#0F4C3A] p-6 text-white sm:p-8 shadow-sm border border-emerald-800 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
             <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-2 border border-white/10">
+                Instruksi Resmi
+              </div>
               <h2 className="text-xl font-serif font-bold">Pembayaran & Verifikasi</h2>
-              <p className="mt-3 text-sm leading-relaxed text-emerald-100">
+              <p className="mt-2 text-sm leading-relaxed text-emerald-100">
                 Transfer biaya formulir dan daftar ulang hanya dilakukan ke rekening resmi yayasan. Bukti transfer diverifikasi secara manual oleh staf PSB.
               </p>
 
@@ -250,7 +253,7 @@ export function PsbInfo() {
                 <p className="text-xs text-emerald-200 font-medium uppercase tracking-wider">
                   {content.psb.rekeningPembayaran.bank || "Rekening Resmi Yayasan"}
                 </p>
-                <p className="mt-1 font-mono text-xl font-bold tracking-wider text-white">
+                <p className="mt-1 font-mono text-xl sm:text-2xl font-bold tracking-wider text-white">
                   {content.psb.rekeningPembayaran.nomorRekening}
                 </p>
                 <p className="text-sm text-emerald-100">
@@ -270,17 +273,23 @@ export function PsbInfo() {
                   <span className="text-white font-semibold">{content.psb.batasDaftarUlang}</span>
                 </div>
               )}
-            </div>
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-[#D97706] hover:bg-[#b56405] px-5 py-3 text-sm font-bold text-white transition-all shadow-md active:scale-95"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>Konfirmasi via WhatsApp</span>
-            </a>
+              {/* Tombol Konfirmasi ditempatkan tepat setelah informasi pembayaran */}
+              <div className="mt-6 pt-5 border-t border-white/15">
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#D97706] hover:bg-[#b56405] px-5 py-3 text-sm font-bold text-white transition-all shadow-md active:scale-95"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Konfirmasi via WhatsApp</span>
+                </a>
+                <p className="mt-2 text-center text-[11px] text-emerald-200/80">
+                  Kirim bukti transfer ke WhatsApp resmi panitia PSB
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
