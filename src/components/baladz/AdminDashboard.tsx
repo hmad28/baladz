@@ -20,6 +20,7 @@ import {
   Loader2,
   LogOut,
   MapPin,
+  Menu,
   MessageCircle,
   Newspaper,
   Pencil,
@@ -447,6 +448,18 @@ export function AdminDashboard() {
   const { draft, setDraft, save, savedAt, isSaving } = useSiteContent();
 
   const [activeMenu, setActiveMenu] = useState<"overview" | "popup" | "pendaftar" | "psb" | "jenjang" | "kabar" | "kontak">("overview");
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  // Tutup drawer otomatis saat layar diperbesar ke desktop (>= 1024px)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileDrawerOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // State pendaftar dari Neon DB
   const [pendaftarList, setPendaftarList] = useState<PendaftarRow[]>([]);
@@ -758,6 +771,133 @@ export function AdminDashboard() {
     showToast("Program dihapus dari draft. Klik Simpan Perubahan untuk menerapkan.");
   };
 
+  type MenuId = "overview" | "popup" | "pendaftar" | "psb" | "jenjang" | "kabar" | "kontak";
+
+  interface MenuItem {
+    id: MenuId;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    iconColor: string;
+    badge?: {
+      text: string;
+      className: string;
+      activeClassName: string;
+    };
+  }
+
+  const pendaftaranMenus: MenuItem[] = [
+    {
+      id: "overview",
+      label: "Ringkasan",
+      icon: Home,
+      iconColor: "text-amber-500",
+    },
+    {
+      id: "pendaftar",
+      label: "Pendaftar Masuk",
+      icon: Users,
+      iconColor: "text-blue-500",
+      badge: {
+        text: String(pendaftarList.length),
+        className: "bg-blue-100 text-blue-800 border border-blue-200",
+        activeClassName: "bg-white/20 text-white border border-white/20",
+      },
+    },
+    {
+      id: "psb",
+      label: "PSB & Biaya",
+      icon: DollarSign,
+      iconColor: "text-emerald-500",
+    },
+    {
+      id: "jenjang",
+      label: "Program Pendidikan",
+      icon: GraduationCap,
+      iconColor: "text-purple-500",
+      badge: {
+        text: String(draft.jenjang.length),
+        className: "bg-purple-100 text-purple-800 border border-purple-200",
+        activeClassName: "bg-white/20 text-white border border-white/20",
+      },
+    },
+  ];
+
+  const websiteMenus: MenuItem[] = [
+    {
+      id: "popup",
+      label: "Popup Pengumuman",
+      icon: Bell,
+      iconColor: "text-amber-500",
+      badge: {
+        text: draft.popup.aktif ? "AKTIF" : "OFF",
+        className: draft.popup.aktif
+          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+          : "bg-stone-100 text-stone-500 border border-stone-200",
+        activeClassName: draft.popup.aktif
+          ? "bg-amber-400 text-emerald-950 font-bold"
+          : "bg-white/20 text-white border border-white/20",
+      },
+    },
+    {
+      id: "kabar",
+      label: "Kabar Baladz",
+      icon: Newspaper,
+      iconColor: "text-orange-500",
+      badge: {
+        text: String(draft.kabar.length),
+        className: "bg-orange-100 text-orange-800 border border-orange-200",
+        activeClassName: "bg-white/20 text-white border border-white/20",
+      },
+    },
+    {
+      id: "kontak",
+      label: "Kontak Website",
+      icon: Phone,
+      iconColor: "text-teal-500",
+    },
+  ];
+
+  const allMenus = [...pendaftaranMenus, ...websiteMenus];
+  const currentMenu = allMenus.find((m) => m.id === activeMenu) || pendaftaranMenus[0];
+  const ActiveMenuIcon = currentMenu.icon;
+
+  const renderSidebarItem = (item: MenuItem, onSelect?: () => void) => {
+    const isActive = activeMenu === item.id;
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => {
+          if (item.id === "jenjang") {
+            openProgramList();
+          } else {
+            setActiveMenu(item.id);
+          }
+          if (onSelect) onSelect();
+        }}
+        className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+          isActive
+            ? "bg-[#0F4C3A] text-white font-bold shadow-xs"
+            : "text-stone-700 hover:bg-stone-100 hover:text-stone-900"
+        }`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-amber-300" : item.iconColor}`} />
+          <span className="truncate">{item.label}</span>
+        </div>
+        {item.badge && (
+          <span
+            className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+              isActive ? item.badge.activeClassName : item.badge.className
+            }`}
+          >
+            {item.badge.text}
+          </span>
+        )}
+      </button>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F4F6F2] text-stone-800 font-sans">
       {/* Toast Notification */}
@@ -770,24 +910,34 @@ export function AdminDashboard() {
 
       {/* TOPBAR */}
       <header className="bg-white border-b border-stone-200 sticky top-0 z-30 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="relative h-10 w-32 hidden sm:block">
-              <Image src="/images/baladz/logo.png" alt="Baladz" fill className="object-contain" />
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Mobile / Tablet Drawer Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className="lg:hidden p-2 rounded-xl text-stone-700 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer"
+              title="Buka Menu Navigasi"
+              aria-label="Buka Menu Navigasi"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <Link href="/" className="relative h-10 w-28 sm:w-32">
+              <Image src="/images/baladz/logo.png" alt="Baladz" fill className="object-contain" priority />
             </Link>
-            <div className="border-l border-stone-200 pl-4">
-              <div>
-                <h1 className="font-serif font-bold text-base sm:text-lg text-[#0F4C3A]">
-                  Dashboard Baladz
-                </h1>
-              </div>
-              <p className="text-[11px] text-stone-500 hidden sm:block">
-                Update konten website tanpa proses teknis
+
+            <div className="hidden sm:block border-l border-stone-200 pl-4">
+              <h1 className="font-serif font-bold text-base text-[#0F4C3A] leading-tight">
+                Dashboard Baladz
+              </h1>
+              <p className="text-[11px] text-stone-500">
+                Pusat Pengelolaan Konten & PSB
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {savedAt && (
               <span className="text-xs text-stone-500 font-medium hidden md:inline">
                 Tersimpan: {savedAt}
@@ -804,19 +954,19 @@ export function AdminDashboard() {
             <button
               onClick={handleSaveAll}
               disabled={isSaving}
-              className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-4 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-50"
+              className="bg-[#0F4C3A] hover:bg-[#0c3f30] text-white px-3.5 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
             </button>
-            <div className="h-6 w-px bg-stone-200 mx-1 hidden sm:block" />
+            <div className="h-6 w-px bg-stone-200 mx-0.5 hidden sm:block" />
             <button
               onClick={() => {
                 setPasswordError(null);
                 setPasswordSuccess(null);
                 setIsPasswordModalOpen(true);
               }}
-              className="px-3 py-2 text-xs font-semibold rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center gap-1.5 text-stone-700 transition-colors cursor-pointer"
+              className="px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-lg border border-stone-200 hover:bg-stone-50 flex items-center gap-1.5 text-stone-700 transition-colors cursor-pointer"
               title="Ganti Password Admin"
             >
               <KeyRound className="w-3.5 h-3.5 text-stone-500" />
@@ -824,7 +974,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={handleLogout}
-              className="px-3 py-2 text-xs font-semibold rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Keluar dari Panel Admin"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -834,135 +984,137 @@ export function AdminDashboard() {
         </div>
       </header>
 
+      {/* MOBILE / TABLET NAVIGATION DRAWER */}
+      {isMobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsMobileDrawerOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Panel */}
+          <div className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white shadow-2xl z-10 flex flex-col justify-between animate-in slide-in-from-left duration-200">
+            <div className="p-5 flex-1 overflow-y-auto space-y-5">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-stone-200">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-8 w-24">
+                    <Image src="/images/baladz/logo.png" alt="Baladz" fill className="object-contain" priority />
+                  </div>
+                  <div>
+                    <div className="font-serif font-bold text-sm text-[#0F4C3A]">Panel Admin</div>
+                    <div className="text-[10px] text-stone-500">Pusat Kelola Baladz</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="p-2 rounded-xl text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
+                  aria-label="Tutup Menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Sections */}
+              <div className="space-y-4">
+                <div>
+                  <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                    Pendaftaran & Akademik
+                  </div>
+                  <div className="space-y-1">
+                    {pendaftaranMenus.map((item) => renderSidebarItem(item, () => setIsMobileDrawerOpen(false)))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-stone-100">
+                  <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                    Konten Website
+                  </div>
+                  <div className="space-y-1">
+                    {websiteMenus.map((item) => renderSidebarItem(item, () => setIsMobileDrawerOpen(false)))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-4 border-t border-stone-200 bg-stone-50 space-y-2">
+              <Link
+                href="/"
+                target="_blank"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-100 text-xs font-bold text-stone-700 transition shadow-2xs"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Lihat Website Publik</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar dari Panel Admin</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MAIN LAYOUT */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid lg:grid-cols-12 gap-6">
-          {/* SIDEBAR NAVIGATION */}
-          <aside className="lg:col-span-3 xl:col-span-2 overflow-x-auto lg:overflow-visible">
-            <div className="bg-white p-2.5 rounded-2xl border border-stone-200 shadow-2xs flex gap-2 lg:block lg:space-y-1">
-              <div className="hidden lg:block px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                Menu Utama
+        {/* Mobile / Tablet Quick Switcher Bar */}
+        <div className="lg:hidden flex items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs mb-6">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#0F4C3A] flex items-center justify-center shrink-0 border border-emerald-100">
+              <ActiveMenuIcon className="w-4 h-4 text-[#0F4C3A]" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Tab Aktif</span>
+              <span className="font-bold text-sm text-stone-900 truncate block">
+                {currentMenu.label}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsMobileDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0F4C3A] hover:bg-[#0c3f30] text-white text-xs font-bold shrink-0 transition active:scale-95 cursor-pointer shadow-xs"
+          >
+            <Menu className="w-3.5 h-3.5" />
+            <span>Ganti Menu</span>
+          </button>
+        </div>
+
+        {/* Desktop Layout: Fixed Sidebar (w-72) + Fluid Main Content (flex-1 min-w-0) */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+          {/* DESKTOP SIDEBAR */}
+          <aside className="hidden lg:block w-72 shrink-0 sticky top-24">
+            <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+              <div>
+                <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                  Pendaftaran & Akademik
+                </div>
+                <div className="space-y-1">
+                  {pendaftaranMenus.map((item) => renderSidebarItem(item))}
+                </div>
               </div>
 
-              <button
-                onClick={() => setActiveMenu("overview")}
-                className={`shrink-0 lg:w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "overview"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <Home className="w-4 h-4 text-amber-400" />
-                <span>Ringkasan</span>
-              </button>
-
-              {/* TAB 1: POPUP PENGUMUMAN */}
-              <button
-                onClick={() => setActiveMenu("popup")}
-                className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "popup"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Bell className="w-4 h-4 text-amber-400" />
-                  <span>Popup Pengumuman</span>
+              <div className="pt-3 border-t border-stone-100">
+                <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                  Konten Website
                 </div>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                    draft.popup.aktif
-                      ? activeMenu === "popup"
-                        ? "bg-amber-400 text-emerald-950"
-                        : "bg-emerald-100 text-emerald-800"
-                      : "bg-stone-200 text-stone-600"
-                  }`}
-                >
-                  {draft.popup.aktif ? "AKTIF" : "OFF"}
-                </span>
-              </button>
-
-              {/* TAB 2: DATA PENDAFTAR MASUK */}
-              <button
-                onClick={() => setActiveMenu("pendaftar")}
-                className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "pendaftar"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Users className="w-4 h-4 text-blue-400" />
-                  <span>Pendaftar Masuk</span>
+                <div className="space-y-1">
+                  {websiteMenus.map((item) => renderSidebarItem(item))}
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold">
-                  {pendaftarList.length}
-                </span>
-              </button>
-
-              {/* TAB 3: PSB & BIAYA */}
-              <button
-                onClick={() => setActiveMenu("psb")}
-                className={`shrink-0 lg:w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "psb"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <DollarSign className="w-4 h-4 text-emerald-400" />
-                <span>PSB & Biaya</span>
-              </button>
-
-              {/* TAB 4: JENJANG PENDIDIKAN */}
-              <button
-                onClick={openProgramList}
-                className={`shrink-0 lg:w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "jenjang"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <GraduationCap className="w-4 h-4 text-purple-400" />
-                <span>Program Pendidikan</span>
-              </button>
-
-              <div className="hidden lg:block px-3 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                Konten Lembaga
               </div>
-
-              {/* TAB 5: KABAR BALADZ */}
-              <button
-                onClick={() => setActiveMenu("kabar")}
-                className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "kabar"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Newspaper className="w-4 h-4 text-orange-400" />
-                  <span>Kabar Baladz</span>
-                </div>
-                <span className="text-[10px] text-stone-400">{draft.kabar.length}</span>
-              </button>
-
-              {/* TAB 7: KONTAK & MEDSOS */}
-              <button
-                onClick={() => setActiveMenu("kontak")}
-                className={`shrink-0 lg:w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold text-left whitespace-nowrap transition-all cursor-pointer ${
-                  activeMenu === "kontak"
-                    ? "bg-[#0F4C3A] text-white shadow-xs"
-                    : "text-stone-700 hover:bg-stone-100"
-                }`}
-              >
-                <Phone className="w-4 h-4 text-teal-400" />
-                <span>Kontak Website</span>
-              </button>
             </div>
           </aside>
 
-          {/* CONTENT PANEL */}
-          <main className="lg:col-span-9 xl:col-span-10 space-y-6">
+          {/* MAIN CONTENT PANEL (flex-1 min-w-0 w-full, rock-solid width across all tabs) */}
+          <main className="flex-1 min-w-0 w-full space-y-6">
             {activeMenu === "overview" && (
               <div className="space-y-6">
                 <div className="rounded-2xl bg-[#0F4C3A] p-6 sm:p-8 text-white">
