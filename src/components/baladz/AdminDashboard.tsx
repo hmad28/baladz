@@ -406,7 +406,7 @@ function ProgramEditorFields({ value, onChange, onUploadComplete }: ProgramEdito
 
 export function AdminDashboard() {
   const router = useRouter();
-  const { draft, setDraft, save, reset, savedAt, isSaving } = useSiteContent();
+  const { draft, setDraft, save, savedAt, isSaving } = useSiteContent();
 
   const [activeMenu, setActiveMenu] = useState<"overview" | "popup" | "pendaftar" | "psb" | "jenjang" | "kabar" | "kontak">("overview");
 
@@ -703,18 +703,6 @@ export function AdminDashboard() {
                 Tersimpan: {savedAt}
               </span>
             )}
-            <button
-              onClick={() => {
-                if (confirm("Reset seluruh data ke pengaturan awal?")) {
-                  reset();
-                  showToast("Data berhasil dikembalikan ke pengaturan default.");
-                }
-              }}
-              className="p-2 text-xs font-semibold rounded-lg text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-              title="Reset ke Pengaturan Default"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
             <Link
               href="/"
               target="_blank"
