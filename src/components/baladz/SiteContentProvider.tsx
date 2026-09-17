@@ -33,6 +33,8 @@ function mergeSiteContent(saved: Partial<BaladzSiteContent> | null | undefined):
   const merged: BaladzSiteContent = {
     ...defaultSiteContent,
     ...saved,
+    jenjang: Array.isArray(saved.jenjang) && saved.jenjang.length > 0 ? saved.jenjang : defaultSiteContent.jenjang,
+    kabar: Array.isArray(saved.kabar) && saved.kabar.length > 0 ? saved.kabar : defaultSiteContent.kabar,
     popup: {
       ...defaultSiteContent.popup,
       ...(saved.popup || {}),
@@ -44,6 +46,10 @@ function mergeSiteContent(saved: Partial<BaladzSiteContent> | null | undefined):
     psb: {
       ...defaultSiteContent.psb,
       ...(saved.psb || {}),
+      gelombang: Array.isArray(saved.psb?.gelombang) && saved.psb.gelombang.length > 0 ? saved.psb.gelombang : defaultSiteContent.psb.gelombang,
+      alurPendaftaran: Array.isArray(saved.psb?.alurPendaftaran) && saved.psb.alurPendaftaran.length > 0 ? saved.psb.alurPendaftaran : defaultSiteContent.psb.alurPendaftaran,
+      syaratBerkas: Array.isArray(saved.psb?.syaratBerkas) && saved.psb.syaratBerkas.length > 0 ? saved.psb.syaratBerkas : defaultSiteContent.psb.syaratBerkas,
+      materiSeleksi: Array.isArray(saved.psb?.materiSeleksi) && saved.psb.materiSeleksi.length > 0 ? saved.psb.materiSeleksi : defaultSiteContent.psb.materiSeleksi,
       rekeningPembayaran: {
         ...defaultSiteContent.psb.rekeningPembayaran,
         ...(saved.psb?.rekeningPembayaran || {}),
@@ -57,36 +63,8 @@ function mergeSiteContent(saved: Partial<BaladzSiteContent> | null | undefined):
       ...defaultSiteContent.cta,
       ...(saved.cta || {}),
     },
+    contentVersion: Math.max(saved.contentVersion || 0, defaultSiteContent.contentVersion),
   };
-
-  // Migrasi satu kali: cegah cache/database lama menghidupkan kembali data PSB
-  // yang secara eksplisit telah diganti oleh tim Baladz.
-  if (!saved.contentVersion || saved.contentVersion < defaultSiteContent.contentVersion) {
-    return {
-      ...merged,
-      contentVersion: defaultSiteContent.contentVersion,
-      sourceNotes: defaultSiteContent.sourceNotes,
-      jenjang: defaultSiteContent.jenjang,
-      psb: defaultSiteContent.psb,
-      lembaga: {
-        ...merged.lembaga,
-        lokasiKbm: defaultSiteContent.lembaga.lokasiKbm,
-      },
-      kontak: {
-        ...merged.kontak,
-        whatsappUtama: defaultSiteContent.kontak.whatsappUtama,
-        whatsappKedua: defaultSiteContent.kontak.whatsappKedua,
-        telepon: defaultSiteContent.kontak.telepon,
-      },
-      popup: {
-        ...defaultSiteContent.popup,
-        aktif: merged.popup.aktif,
-        modeTampilan: merged.popup.modeTampilan,
-        nomorWaCta: defaultSiteContent.kontak.whatsappUtama,
-        linkCta: "",
-      },
-    };
-  }
 
   return merged;
 }
@@ -120,7 +98,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
 
       // 2. Cek data terbaru dari Neon PostgreSQL
       try {
-        const res = await fetch("/api/content", { cache: "no-store" });
+        const res = await fetch(`/api/content?t=${Date.now()}`, { cache: "no-store" });
         if (res.ok) {
           const json = await res.json();
           if (isMounted) {
@@ -153,9 +131,13 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       setDraft,
       save: async () => {
         setIsSaving(true);
+        const dataToSave = {
+          ...draft,
+          contentVersion: Math.max(draft.contentVersion || 0, defaultSiteContent.contentVersion),
+        };
         // Simpan ke localStorage
-        window.localStorage.setItem(storageKey, JSON.stringify(draft));
-        setContent(draft);
+        window.localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+        setContent(dataToSave);
 
         let success = true;
         // Simpan ke Neon PostgreSQL
@@ -163,7 +145,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
           const res = await fetch("/api/content", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(draft),
+            body: JSON.stringify(dataToSave),
           });
 
           if (res.ok) {

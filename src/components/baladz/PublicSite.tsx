@@ -538,7 +538,11 @@ export function PublicSite() {
                       <span className="rounded-full bg-white/10 px-2 py-1">Jadwal terkonfirmasi</span>
                     </div>
                     <h2 className="mt-2 text-2xl font-serif font-bold">Cek jadwal dan tahapan pendaftaran</h2>
-                    <p className="mt-2 text-sm leading-relaxed text-emerald-100">Gelombang 1 berlangsung September 2026–Januari 2027 dan Gelombang 2 Januari–Mei 2027. Berlaku untuk {content.psb.cakupanJenjang.toLowerCase()}.</p>
+                    <p className="mt-2 text-sm leading-relaxed text-emerald-100">
+                      {content.psb.gelombang && content.psb.gelombang.length > 0
+                        ? content.psb.gelombang.map((g) => `${g.nama} (${g.pendaftaranBerkas})`).join(" dan ") + `. Berlaku untuk ${content.psb.cakupanJenjang.toLowerCase()}.`
+                        : `Pendaftaran santri baru berlaku untuk ${content.psb.cakupanJenjang.toLowerCase()}.`}
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <Link href="/psb" className="rounded-lg bg-white px-5 py-3 text-sm font-bold text-[#0F4C3A] hover:bg-amber-50">Lihat info PSB</Link>
@@ -896,7 +900,7 @@ export function PublicSite() {
                         Alur Penerimaan Santri Baru
                       </h2>
                       <p className="text-stone-600 text-sm mt-1">
-                        Pendaftaran dibuka mulai <strong className="text-emerald-900">{content.psb.tanggalBuka}</strong> s/d <strong className="text-emerald-900">{content.psb.tanggalTutup}</strong> atau sampai kuota 13 santri terpenuhi.
+                        Pendaftaran dibuka mulai <strong className="text-emerald-900">{content.psb.tanggalBuka}</strong> s/d <strong className="text-emerald-900">{content.psb.tanggalTutup}</strong>{content.psb.kuotaSantri > 0 ? ` atau sampai kuota ${content.psb.kuotaSantri} santri terpenuhi.` : "."}
                       </p>
                     </div>
 

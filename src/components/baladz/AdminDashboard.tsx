@@ -17,6 +17,7 @@ import {
   ImageIcon,
   KeyRound,
   Layout,
+  Loader2,
   LogOut,
   MapPin,
   MessageCircle,
@@ -48,6 +49,7 @@ interface PendaftarRow {
   no_wa: string;
   alamat: string;
   status: string;
+  jadwal_seleksi?: string;
   created_at: string;
 }
 
@@ -93,6 +95,42 @@ Selamat atas diterimanya ananda di lingkungan pendidikan Ma'had Baladz Al-Qur'an
 
 *Informasi Daftar Ulang & Administrasi:*
 Untuk proses konfirmasi daftar ulang, penyerahan berkas fisik, dan jadwal administrasi selanjutnya, silakan langsung membalas pesan WhatsApp ini atau menghubungi narahubung Panitia PSB Baladz.
+
+Jazakumullahu khairan wa barakallahu fikum.
+
+Wassalamu'alaikum Warahmatullahi Wabarakatuh.
+_Panitia PSB Ma'had Baladz Al-Qur'an_`;
+
+  return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(pesan)}`;
+}
+
+export function buildSeleksiWaUrl(pendaftar: PendaftarRow, jadwalSeleksiCustom?: string): string | null {
+  const cleanNumber = getValidWaNumber(pendaftar.no_wa);
+  if (!cleanNumber) return null;
+
+  const namaWali = pendaftar.nama_wali?.trim() || "Orang Tua / Wali Santri";
+  const namaSantri = pendaftar.nama_santri?.trim() || "-";
+  const jenjang = pendaftar.jenjang?.trim() || "Ma'had Baladz Al-Qur'an";
+  const jadwal = jadwalSeleksiCustom?.trim() || pendaftar.jadwal_seleksi?.trim();
+
+  const jadwalSection = jadwal
+    ? `• *Jadwal Seleksi:* ${jadwal}\n• *Metode:* Video Call WhatsApp / Tatap Muka di Ma'had Baladz\n\nMohon konfirmasi kehadiran dan kesiapan ananda dengan membalas pesan ini.`
+    : `• *Status:* Seleksi Dijadwalkan\n\nUntuk konfirmasi penentuan hari, jam, dan petunjuk teknis seleksi (via Video Call WhatsApp / Tatap Muka), silakan langsung membalas pesan WhatsApp ini.`;
+
+  const pesan =
+`Assalamu'alaikum Warahmatullahi Wabarakatuh,
+
+Yth. Bapak/Ibu *${namaWali}*,
+
+Alhamdulillah, terima kasih telah mendaftarkan ananda *${namaSantri}* pada program *${jenjang}* di Ma'had Baladz Al-Qur'an.
+
+Melalui pesan ini, kami Panitia Penerimaan Santri Baru (PSB) menginformasikan tahapan seleksi penerimaan santri baru:
+
+• *Nama Calon Santri:* ${namaSantri}
+• *Program Pilihan:* ${jenjang}
+${jadwalSection}
+
+Jika ada pertanyaan seputar berkas atau kendala waktu pelaksanaan, silakan langsung menghubungi narahubung Panitia PSB Baladz melalui nomor ini.
 
 Jazakumullahu khairan wa barakallahu fikum.
 
@@ -419,6 +457,13 @@ export function AdminDashboard() {
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Modal Kirim WhatsApp Seleksi Dijadwalkan
+  const [seleksiModalItem, setSeleksiModalItem] = useState<{ pendaftar: PendaftarRow; jadwal: string } | null>(null);
+  const [isSavingJadwalSeleksi, setIsSavingJadwalSeleksi] = useState(false);
+
+  // Feedback modal Simpan Perubahan dengan tautan lihat website
+  const [saveFeedback, setSaveFeedback] = useState<{ isOpen: boolean; isDb: boolean; time: string } | null>(null);
+
   // State Ganti Password Modal
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -548,6 +593,8 @@ export function AdminDashboard() {
         );
         if (status === "Diterima") {
           showToast("Status diubah ke Diterima. Tombol 'Kirim WhatsApp' kini siap digunakan.");
+        } else if (status.toLowerCase().includes("seleksi")) {
+          showToast("Status diubah ke Seleksi Dijadwalkan. Tombol 'Kirim WhatsApp' siap digunakan.");
         } else {
           showToast("Status pendaftar berhasil diperbarui!");
         }
@@ -557,6 +604,37 @@ export function AdminDashboard() {
     } catch {
       showToast("Gagal memperbarui status.");
     }
+  };
+
+  // Kirim WhatsApp jadwal seleksi dan simpan jadwal ke DB jika ada perubahan
+  const handleSendSeleksiWa = async () => {
+    if (!seleksiModalItem) return;
+    const { pendaftar, jadwal } = seleksiModalItem;
+    setIsSavingJadwalSeleksi(true);
+
+    try {
+      if (jadwal !== pendaftar.jadwal_seleksi) {
+        await fetch("/api/pendaftar", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: pendaftar.id, jadwal_seleksi: jadwal }),
+        });
+
+        setPendaftarList((prev) =>
+          prev.map((item) => (item.id === pendaftar.id ? { ...item, jadwal_seleksi: jadwal } : item))
+        );
+      }
+    } catch (err) {
+      console.error("Gagal simpan jadwal seleksi:", err);
+    } finally {
+      setIsSavingJadwalSeleksi(false);
+    }
+
+    const url = buildSeleksiWaUrl(pendaftar, jadwal);
+    if (url) {
+      window.open(url, "_blank");
+    }
+    setSeleksiModalItem(null);
   };
 
   // Hapus pendaftar
@@ -602,8 +680,20 @@ export function AdminDashboard() {
   // Simpan perubahan form
   const handleSaveAll = async () => {
     const ok = await save();
+    const timeNow = new Intl.DateTimeFormat("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).format(new Date());
+
+    setSaveFeedback({
+      isOpen: true,
+      isDb: ok,
+      time: timeNow,
+    });
+
     if (ok) {
-      showToast("Semua perubahan berhasil disimpan ke database!");
+      showToast("Semua perubahan berhasil disimpan ke database Neon!");
     } else {
       showToast("Tersimpan secara lokal di browser.");
     }
@@ -1627,9 +1717,11 @@ export function AdminDashboard() {
                                           ? "border-emerald-500 bg-emerald-50 text-emerald-900"
                                           : item.status === "Tidak dilanjutkan"
                                           ? "border-stone-300 bg-stone-100 text-stone-600"
+                                          : item.status.toLowerCase().includes("seleksi")
+                                          ? "border-blue-400 bg-blue-50 text-blue-900"
                                           : item.status.startsWith("Pendaftar masuk") || item.status === "Baru"
                                           ? "border-amber-400 bg-amber-50 text-amber-900"
-                                          : "border-blue-300 bg-blue-50 text-blue-900"
+                                          : "border-stone-300 bg-white text-stone-800"
                                       }`}
                                     >
                                       {!pendaftarStatuses.includes(item.status as (typeof pendaftarStatuses)[number]) && (
@@ -1648,6 +1740,20 @@ export function AdminDashboard() {
                                         <span>Terverifikasi Diterima</span>
                                       </div>
                                     )}
+
+                                    {item.status.toLowerCase().includes("seleksi") && (
+                                      <div className="flex flex-col gap-0.5 text-[11px] font-semibold text-blue-800 bg-blue-50/80 px-2 py-1 rounded-md border border-blue-200">
+                                        <div className="flex items-center gap-1">
+                                          <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                          <span>Seleksi Dijadwalkan</span>
+                                        </div>
+                                        {item.jadwal_seleksi && (
+                                          <div className="text-[10px] text-blue-600 font-normal truncate max-w-[170px]" title={item.jadwal_seleksi}>
+                                            {item.jadwal_seleksi}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
 
@@ -1656,6 +1762,8 @@ export function AdminDashboard() {
                                   className={`py-3.5 px-4 align-middle sticky right-0 z-10 border-l border-stone-200 shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.06)] transition-colors ${
                                     item.status === "Diterima"
                                       ? "bg-[#f4faf7] group-hover:bg-[#ebf6f1]"
+                                      : item.status.toLowerCase().includes("seleksi")
+                                      ? "bg-[#f5f8ff] group-hover:bg-[#ecf2fe]"
                                       : "bg-white group-hover:bg-stone-50"
                                   }`}
                                 >
@@ -1673,6 +1781,29 @@ export function AdminDashboard() {
                                           <MessageCircle className="w-3.5 h-3.5 shrink-0" />
                                           <span>Kirim WhatsApp</span>
                                         </a>
+                                      ) : (
+                                        <span
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-400 bg-stone-100 border border-stone-200 cursor-not-allowed shrink-0 whitespace-nowrap"
+                                          title="Nomor WhatsApp tidak tersedia atau format tidak valid"
+                                        >
+                                          <AlertCircle className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                                          <span>WA Tidak Valid</span>
+                                        </span>
+                                      )
+                                    )}
+
+                                    {/* Jika Status Seleksi Dijadwalkan: Tombol Kirim WhatsApp Seleksi */}
+                                    {item.status.toLowerCase().includes("seleksi") && (
+                                      cleanWa ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setSeleksiModalItem({ pendaftar: item, jadwal: item.jadwal_seleksi || "" })}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 shadow-xs transition-all hover:scale-[1.02] shrink-0 cursor-pointer whitespace-nowrap"
+                                          title="Kirim pemberitahuan JADWAL SELEKSI ke WhatsApp wali santri"
+                                        >
+                                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                                          <span>Kirim WhatsApp</span>
+                                        </button>
                                       ) : (
                                         <span
                                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-400 bg-stone-100 border border-stone-200 cursor-not-allowed shrink-0 whitespace-nowrap"
@@ -1706,6 +1837,7 @@ export function AdminDashboard() {
                     <div className="block md:hidden space-y-3">
                       {filteredPendaftarList.map((item) => {
                         const cleanWa = getValidWaNumber(item.no_wa);
+                        const isSeleksi = item.status.toLowerCase().includes("seleksi");
                         const diterimaWaUrl = item.status === "Diterima" ? buildDiterimaWaUrl(item) : null;
                         const generalWaUrl = cleanWa
                           ? `https://wa.me/${cleanWa}?text=Assalamu%27alaikum%20Bapak%2FIbu%20${encodeURIComponent(item.nama_wali)}%2C%20kami%20dari%20Panitia%20PSB%20Baladz.`
@@ -1717,6 +1849,8 @@ export function AdminDashboard() {
                             className={`p-4 rounded-xl border transition-all ${
                               item.status === "Diterima"
                                 ? "border-emerald-300 bg-emerald-50/20"
+                                : isSeleksi
+                                ? "border-blue-300 bg-blue-50/20"
                                 : "border-stone-200 bg-white"
                             } shadow-xs space-y-3`}
                           >
@@ -1769,6 +1903,13 @@ export function AdminDashboard() {
                                   <span className="line-clamp-2">{item.alamat}</span>
                                 </div>
                               )}
+
+                              {isSeleksi && item.jadwal_seleksi && (
+                                <div className="flex items-center gap-1.5 text-xs text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg mt-1">
+                                  <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                  <span className="truncate">Jadwal: <strong className="font-semibold">{item.jadwal_seleksi}</strong></span>
+                                </div>
+                              )}
                             </div>
 
                             {/* Status Dropdown */}
@@ -1784,9 +1925,11 @@ export function AdminDashboard() {
                                     ? "border-emerald-500 bg-emerald-50 text-emerald-900"
                                     : item.status === "Tidak dilanjutkan"
                                     ? "border-stone-300 bg-stone-50 text-stone-600"
+                                    : isSeleksi
+                                    ? "border-blue-400 bg-blue-50 text-blue-900"
                                     : item.status.startsWith("Pendaftar masuk") || item.status === "Baru"
                                     ? "border-amber-400 bg-amber-50 text-amber-900"
-                                    : "border-blue-300 bg-blue-50 text-blue-900"
+                                    : "border-stone-300 bg-white text-stone-800"
                                 }`}
                               >
                                 {!pendaftarStatuses.includes(item.status as (typeof pendaftarStatuses)[number]) && (
@@ -1813,6 +1956,22 @@ export function AdminDashboard() {
                                     <MessageCircle className="w-4 h-4" />
                                     <span>Kirim WhatsApp</span>
                                   </a>
+                                ) : (
+                                  <span className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-400 bg-stone-100 border border-stone-200">
+                                    <AlertCircle className="w-3.5 h-3.5 text-stone-400" />
+                                    <span>WA Tidak Valid</span>
+                                  </span>
+                                )
+                              ) : isSeleksi ? (
+                                cleanWa ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSeleksiModalItem({ pendaftar: item, jadwal: item.jadwal_seleksi || "" })}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
+                                  >
+                                    <MessageCircle className="w-4 h-4" />
+                                    <span>Kirim WA Seleksi</span>
+                                  </button>
                                 ) : (
                                   <span className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-400 bg-stone-100 border border-stone-200">
                                     <AlertCircle className="w-3.5 h-3.5 text-stone-400" />
@@ -1856,11 +2015,25 @@ export function AdminDashboard() {
             {/* ======================================================= */}
             {activeMenu === "psb" && (
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Penerimaan Santri Baru</span>
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
-                    Informasi & Biaya Pendaftaran
-                  </h2>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Penerimaan Santri Baru</span>
+                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">
+                      Informasi & Biaya Pendaftaran
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href="/psb"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-xs font-bold text-stone-700 transition"
+                      title="Buka halaman informasi PSB publik di tab baru"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Lihat Halaman Info PSB</span>
+                    </a>
+                  </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4 text-xs sm:text-sm">
@@ -2036,6 +2209,33 @@ export function AdminDashboard() {
                         className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Bottom Quick Action / Save Bar */}
+                <div className="pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-stone-50/80 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-6 sm:p-8 rounded-b-2xl">
+                  <div className="text-xs text-stone-600">
+                    <span className="font-semibold text-stone-800">Tips:</span> Perubahan pada bagian ini langsung tersimpan ke database dan tayang di website publik <span className="font-mono text-emerald-800 font-semibold">/psb</span>.
+                  </div>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <a
+                      href="/psb"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-bold text-stone-700 transition shadow-2xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Buka /psb</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleSaveAll}
+                      disabled={isSaving}
+                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#0F4C3A] hover:bg-[#0c3f30] text-xs font-bold text-white transition shadow-sm cursor-pointer disabled:opacity-50"
+                    >
+                      {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      <span>Simpan Perubahan</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2765,6 +2965,188 @@ export function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Feedback Simpan Perubahan dengan tautan lihat website */}
+      {saveFeedback && saveFeedback.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-stone-200 p-6 space-y-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-serif font-bold text-lg text-emerald-950">
+                  Perubahan Berhasil Disimpan!
+                </h3>
+                <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                  {saveFeedback.isDb
+                    ? `Seluruh perubahan konfigurasi dan data informasi PSB telah tersimpan ke database Neon pada pukul ${saveFeedback.time} WIB.`
+                    : `Data telah tersimpan di browser pada pukul ${saveFeedback.time} WIB.`}
+                </p>
+              </div>
+              <button
+                onClick={() => setSaveFeedback(null)}
+                className="text-stone-400 hover:text-stone-600 p-1 rounded-lg hover:bg-stone-100 transition-colors"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-emerald-50/60 border border-emerald-100 rounded-xl space-y-2">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-900">
+                Tinjau Hasil Perubahan:
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <a
+                  href="/psb"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-bold border border-emerald-200 shadow-2xs transition"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span>Lihat Info PSB (/psb)</span>
+                </a>
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-bold border border-emerald-200 shadow-2xs transition"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span>Lihat Beranda (/)</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setSaveFeedback(null)}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0F4C3A] hover:bg-[#0c3f30] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                Lanjut Kelola Website
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Kirim WhatsApp Seleksi Dijadwalkan */}
+      {seleksiModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-stone-200 p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Kirim Undangan Seleksi (WhatsApp)
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Notifikasi jadwal seleksi untuk calon santri baru
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSeleksiModalItem(null)}
+                className="text-stone-400 hover:text-stone-600 p-1 rounded-lg hover:bg-stone-100 transition-colors"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Ringkasan Pendaftar */}
+            <div className="grid grid-cols-2 gap-3 p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs">
+              <div>
+                <span className="text-stone-500 block text-[11px]">Nama Calon Santri:</span>
+                <span className="font-bold text-stone-900">{seleksiModalItem.pendaftar.nama_santri}</span>
+              </div>
+              <div>
+                <span className="text-stone-500 block text-[11px]">Jenjang / Program:</span>
+                <span className="font-bold text-stone-900">{seleksiModalItem.pendaftar.jenjang}</span>
+              </div>
+              <div>
+                <span className="text-stone-500 block text-[11px]">Orang Tua / Wali:</span>
+                <span className="font-semibold text-stone-800">{seleksiModalItem.pendaftar.nama_wali}</span>
+              </div>
+              <div>
+                <span className="text-stone-500 block text-[11px]">No. WhatsApp:</span>
+                <span className="font-mono font-semibold text-emerald-800">{seleksiModalItem.pendaftar.no_wa}</span>
+              </div>
+            </div>
+
+            {/* Input Jadwal Seleksi Custom/Tersimpan */}
+            <div>
+              <label className="block text-xs font-bold text-stone-800 mb-1">
+                Waktu & Jadwal Seleksi <span className="font-normal text-stone-400">(opsional)</span>
+              </label>
+              <input
+                type="text"
+                value={seleksiModalItem.jadwal}
+                onChange={(e) =>
+                  setSeleksiModalItem({
+                    ...seleksiModalItem,
+                    jadwal: e.target.value,
+                  })
+                }
+                placeholder="Contoh: Sabtu, 28 Oktober 2026 pukul 09.00 WIB"
+                className="w-full text-xs sm:text-sm border border-stone-300 rounded-xl px-3.5 py-2.5 outline-none focus:border-blue-600"
+              />
+              <p className="text-[11px] text-stone-500 mt-1">
+                * Jika diisi, waktu ini akan otomatis dicantumkan di pesan dan disimpan ke database pendaftar. Jika dikosongkan, pesan akan mengarahkan wali santri untuk menyepakati jadwal dengan panitia.
+              </p>
+            </div>
+
+            {/* Preview Pesan WhatsApp */}
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">
+                Preview Template Pesan:
+              </label>
+              <div className="bg-[#e7f3ee] border border-emerald-200/80 rounded-xl p-3 text-[11px] font-mono text-emerald-950 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                {`Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nYth. Bapak/Ibu *${seleksiModalItem.pendaftar.nama_wali?.trim() || "Orang Tua / Wali Santri"}*,\n\nAlhamdulillah, terima kasih telah mendaftarkan ananda *${seleksiModalItem.pendaftar.nama_santri?.trim() || "-"}* pada program *${seleksiModalItem.pendaftar.jenjang?.trim() || "Ma'had Baladz Al-Qur'an"}* di Ma'had Baladz Al-Qur'an.\n\nMelalui pesan ini, kami Panitia Penerimaan Santri Baru (PSB) menginformasikan tahapan seleksi penerimaan santri baru:\n\n• *Nama Calon Santri:* ${seleksiModalItem.pendaftar.nama_santri?.trim() || "-"}\n• *Program Pilihan:* ${seleksiModalItem.pendaftar.jenjang?.trim() || "-"}\n${
+                  seleksiModalItem.jadwal?.trim()
+                    ? `• *Jadwal Seleksi:* ${seleksiModalItem.jadwal.trim()}\n• *Metode:* Video Call WhatsApp / Tatap Muka di Ma'had Baladz\n\nMohon konfirmasi kehadiran dan kesiapan ananda dengan membalas pesan ini.`
+                    : `• *Status:* Seleksi Dijadwalkan\n\nUntuk konfirmasi penentuan hari, jam, dan petunjuk teknis seleksi (via Video Call WhatsApp / Tatap Muka), silakan langsung membalas pesan WhatsApp ini.`
+                }\n\nJika ada pertanyaan seputar berkas atau kendala waktu pelaksanaan, silakan langsung menghubungi narahubung Panitia PSB Baladz melalui nomor ini.\n\nJazakumullahu khairan wa barakallahu fikum.\n\nWassalamu'alaikum Warahmatullahi Wabarakatuh.\n_Panitia PSB Ma'had Baladz Al-Qur'an_`}
+              </div>
+            </div>
+
+            {/* Tombol Aksi */}
+            <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => setSeleksiModalItem(null)}
+                className="w-1/3 py-2.5 text-xs font-semibold rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 cursor-pointer transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSendSeleksiWa}
+                disabled={isSavingJadwalSeleksi}
+                className="w-2/3 py-2.5 text-xs font-bold rounded-xl bg-blue-700 hover:bg-blue-800 text-white transition cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
+              >
+                {isSavingJadwalSeleksi ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Buka WhatsApp Sekarang</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

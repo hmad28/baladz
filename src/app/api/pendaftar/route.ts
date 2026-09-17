@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getAdminSession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const session = await getAdminSession();
   if (!session) {
@@ -18,7 +21,7 @@ export async function GET() {
 
   try {
     const rows = await sql`
-      SELECT id, nama_santri, tgl_lahir_usia, jenjang, nama_wali, no_wa, alamat, status, created_at
+      SELECT id, nama_santri, tgl_lahir_usia, jenjang, nama_wali, no_wa, alamat, status, jadwal_seleksi, created_at
       FROM pendaftar
       ORDER BY id DESC
     `;
@@ -72,16 +75,30 @@ export async function PATCH(req: Request) {
   }
 
   try {
-    const { id, status } = await req.json();
-    if (!id || !status) {
-      return NextResponse.json({ success: false, error: "ID dan status diperlukan" }, { status: 400 });
+    const { id, status, jadwal_seleksi } = await req.json();
+    if (!id) {
+      return NextResponse.json({ success: false, error: "ID diperlukan" }, { status: 400 });
     }
 
-    await sql`
-      UPDATE pendaftar
-      SET status = ${status}
-      WHERE id = ${Number(id)}
-    `;
+    if (status !== undefined && jadwal_seleksi !== undefined) {
+      await sql`
+        UPDATE pendaftar
+        SET status = ${status}, jadwal_seleksi = ${jadwal_seleksi}
+        WHERE id = ${Number(id)}
+      `;
+    } else if (status !== undefined) {
+      await sql`
+        UPDATE pendaftar
+        SET status = ${status}
+        WHERE id = ${Number(id)}
+      `;
+    } else if (jadwal_seleksi !== undefined) {
+      await sql`
+        UPDATE pendaftar
+        SET jadwal_seleksi = ${jadwal_seleksi}
+        WHERE id = ${Number(id)}
+      `;
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

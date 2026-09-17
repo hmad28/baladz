@@ -3,6 +3,9 @@ import { getDb } from "@/lib/db";
 import { defaultSiteContent } from "@/content/site-content";
 import { getAdminSession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const sql = getDb();
   if (!sql) {
