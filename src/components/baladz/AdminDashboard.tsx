@@ -25,12 +25,11 @@ import {
   RotateCcw,
   Save,
   Trash2,
-  Upload,
   Users,
   X,
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
-import { UploadButton } from "@/lib/uploadthing";
+import { AdminImageUploader } from "./AdminImageUploader";
 import {
   type BeritaKabar,
   type JenjangPendidikan,
@@ -189,32 +188,16 @@ function ProgramEditorFields({ value, onChange, onUploadComplete }: ProgramEdito
       </section>
 
       <section className="space-y-4 border-t border-stone-200 pt-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">Foto program</p>
-          <p className="mt-1 text-sm text-stone-500">Gunakan foto kegiatan asli dengan rasio mendatar.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-[10rem_1fr] sm:items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value.gambar} alt={`Preview ${value.nama || "program"}`} className="aspect-[4/3] w-full rounded-xl bg-stone-100 object-cover" />
-          <div className="space-y-3">
-            <input value={value.gambar} onChange={(event) => update({ gambar: event.target.value })} className={fieldClass} placeholder="URL gambar" />
-            <div className="flex items-center justify-between rounded-xl border border-dashed border-stone-300 bg-stone-50 px-3 py-2">
-              <span className="text-xs text-stone-500">Atau unggah foto</span>
-              <UploadButton
-                endpoint="imageUploader"
-                onClientUploadComplete={(result) => {
-                  const file = result?.[0];
-                  const url = file?.ufsUrl || file?.url;
-                  if (url) {
-                    update({ gambar: url });
-                    onUploadComplete();
-                  }
-                }}
-                onUploadError={(error) => console.error("Upload program gagal:", error)}
-              />
-            </div>
-          </div>
-        </div>
+        <AdminImageUploader
+          label="Foto Dokumentasi Program"
+          description="Gunakan foto kegiatan belajar/santri asli. Disarankan rasio landscape 4:3."
+          value={value.gambar}
+          onChange={(url) => {
+            update({ gambar: url });
+            onUploadComplete();
+          }}
+          aspectRatio="4/3"
+        />
       </section>
 
       <section className="space-y-4 border-t border-stone-200 pt-6">
@@ -915,40 +898,17 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-amber-600">Identitas beranda</p>
-                      <h3 className="mt-1 text-lg font-serif font-bold text-[#0F4C3A]">Foto hero homepage</h3>
-                      <p className="mt-1 text-sm text-stone-500">Ganti foto utama yang tampil di bagian hero website.</p>
-                    </div>
-                    <ImageIcon className="mt-1 h-5 w-5 shrink-0 text-emerald-700" />
-                  </div>
-                  <div className="mt-5 grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={draft.lembaga.fotoHero || "/images/baladz/about.jpg"} alt="Preview foto hero" className="aspect-[4/3] w-full rounded-xl bg-stone-100 object-cover" />
-                    <div className="space-y-3">
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-stone-700">URL foto</span>
-                        <input value={draft.lembaga.fotoHero} onChange={(e) => setDraft({ ...draft, lembaga: { ...draft.lembaga, fotoHero: e.target.value } })} className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm" placeholder="https://... atau /images/baladz/..." />
-                      </label>
-                      <div className="flex items-center justify-between rounded-xl border border-dashed border-stone-300 bg-stone-50 px-3 py-2">
-                        <span className="text-xs text-stone-500">Atau unggah foto dokumentasi</span>
-                        <UploadButton
-                          endpoint="imageUploader"
-                          onClientUploadComplete={(result) => {
-                            const file = result?.[0];
-                            const url = file?.ufsUrl || file?.url;
-                            if (url) {
-                              setDraft({ ...draft, lembaga: { ...draft.lembaga, fotoHero: url } });
-                              showToast("Foto hero berhasil di-upload! Jangan lupa simpan perubahan.");
-                            }
-                          }}
-                          onUploadError={(error: Error) => alert(`Upload error: ${error.message}`)}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 space-y-4">
+                  <AdminImageUploader
+                    label="Foto Hero Beranda (Tentang Baladz)"
+                    description="Foto suasana santri atau gedung Ma'had yang tampil di bagian profil beranda website. Disarankan format landscape 4:3 atau 16:9."
+                    value={draft.lembaga.fotoHero || "/images/baladz/about.jpg"}
+                    onChange={(url) => {
+                      setDraft({ ...draft, lembaga: { ...draft.lembaga, fotoHero: url } });
+                      showToast("Foto hero berhasil diperbarui! Jangan lupa simpan perubahan.");
+                    }}
+                    aspectRatio="4/3"
+                  />
                 </section>
               </div>
             )}
@@ -1089,93 +1049,25 @@ export function AdminDashboard() {
 
                     {/* Upload Poster */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="font-semibold text-stone-700">
-                          Gambar Poster / Flyer <span className="text-emerald-700">*</span>
-                        </label>
-                        {draft.popup.modeTampilan === "gambar_saja" && (
-                          <span className="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded font-medium border border-amber-200">
-                            Disarankan foto pamflet/flyer potret
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        {/* UploadThing Button */}
-                        <div className="p-3 bg-stone-50 border border-dashed border-stone-300 rounded-xl flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-xs text-stone-600">
-                            <Upload className="w-4 h-4 text-emerald-700" />
-                            <span>Upload poster langsung:</span>
-                          </div>
-                          <UploadButton
-                            endpoint="imageUploader"
-                            onClientUploadComplete={(res) => {
-                              const file = res?.[0];
-                              const uploadedUrl =
-                                file?.ufsUrl ||
-                                file?.url ||
-                                (file as unknown as { serverData?: { url?: string } })?.serverData?.url ||
-                                (file as unknown as { appUrl?: string })?.appUrl;
-                              if (uploadedUrl) {
-                                setDraft({
-                                  ...draft,
-                                  popup: { ...draft.popup, gambarPoster: uploadedUrl },
-                                });
-                                showToast("Poster berhasil di-upload! Jangan lupa klik 'Simpan Perubahan' di kanan atas.");
-                              }
-                            }}
-                            onUploadError={(error: Error) => {
-                              alert(`Upload error: ${error.message}`);
-                            }}
-                          />
-                        </div>
-
-                        {/* Thumbnail Status Preview */}
-                        {draft.popup.gambarPoster && (
-                          <div className="flex items-center gap-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={draft.popup.gambarPoster}
-                              alt="Poster Terpasang"
-                              className="w-12 h-12 object-cover rounded-lg border border-emerald-300 shadow-2xs bg-white shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[11px] font-bold text-emerald-900 flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Poster Terpasang</span>
-                              </div>
-                              <div className="text-[10px] text-stone-600 font-mono truncate" title={draft.popup.gambarPoster}>
-                                {draft.popup.gambarPoster}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setDraft({
-                                  ...draft,
-                                  popup: { ...draft.popup, gambarPoster: "" },
-                                })
-                              }
-                              className="text-stone-400 hover:text-red-600 px-2 py-1 text-xs cursor-pointer"
-                              title="Hapus gambar"
-                            >
-                              ✕ Hapus
-                            </button>
-                          </div>
-                        )}
-
-                        <input
-                          type="text"
-                          value={draft.popup.gambarPoster}
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              popup: { ...draft.popup, gambarPoster: e.target.value },
-                            })
-                          }
-                          placeholder="Atau masukkan URL / path gambar poster"
-                          className="w-full px-3 py-2 text-xs border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 font-mono"
-                        />
-                      </div>
+                      <AdminImageUploader
+                        label="Gambar Poster / Flyer Promosi"
+                        description={
+                          draft.popup.modeTampilan === "gambar_saja"
+                            ? "Mode Hanya Gambar: Disarankan foto pamflet/flyer vertikal/potret agar teks terbaca jelas tanpa terpotong."
+                            : "Mode Gambar + Teks: Banner foto di atas disertai judul, narasi pesan, dan tombol WhatsApp di bawahnya."
+                        }
+                        value={draft.popup.gambarPoster || ""}
+                        onChange={(url) => {
+                          setDraft({
+                            ...draft,
+                            popup: { ...draft.popup, gambarPoster: url },
+                          });
+                          showToast("Poster berhasil diperbarui! Jangan lupa simpan perubahan.");
+                        }}
+                        aspectRatio="auto"
+                        objectFit="contain"
+                        badgeText={draft.popup.modeTampilan === "gambar_saja" ? "Format Bebas / Potret" : "Landscape / Potret"}
+                      />
                     </div>
 
                     {/* Setup WhatsApp Aksi CTA (Mudah Dipahami Tanpa Link Rumit) */}
@@ -2069,41 +1961,18 @@ export function AdminDashboard() {
                           />
                         </div>
 
-                        <div>
-                          <label className="block font-semibold text-stone-700 mb-1">Foto Berita (Upload / Link)</label>
-                          <div className="space-y-2">
-                            <div className="p-2.5 bg-stone-50 border border-dashed border-stone-300 rounded-xl flex items-center justify-between">
-                              <span className="text-[11px] text-stone-500">Upload gambar:</span>
-                              <UploadButton
-                                endpoint="imageUploader"
-                                onClientUploadComplete={(res) => {
-                                  const file = res?.[0];
-                                  const url = file?.ufsUrl || file?.url;
-                                  if (url) {
-                                    setNewKabarGambar(url);
-                                    showToast("Foto berita berhasil di-upload!");
-                                  }
-                                }}
-                                onUploadError={(e) => alert(`Upload error: ${e.message}`)}
-                              />
-                            </div>
-                            <input
-                              type="text"
-                              value={newKabarGambar}
-                              onChange={(e) => setNewKabarGambar(e.target.value)}
-                              placeholder="URL gambar"
-                              className="w-full px-3 py-1.5 text-xs border border-stone-300 rounded-lg font-mono bg-white"
-                            />
-                          </div>
+                        <div className="sm:col-span-2">
+                          <AdminImageUploader
+                            label="Foto Dokumentasi Berita"
+                            description="Foto suasana kegiatan atau liputan berita. Disarankan format landscape 16:9 atau 4:3."
+                            value={newKabarGambar}
+                            onChange={(url) => {
+                              setNewKabarGambar(url);
+                              showToast("Foto berita berhasil dipilih!");
+                            }}
+                            aspectRatio="16/9"
+                          />
                         </div>
-
-                        {newKabarGambar && (
-                          <div className="sm:col-span-2 flex items-center gap-3 p-2 bg-stone-50 border border-stone-200 rounded-xl">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={newKabarGambar} alt="Preview" className="w-16 h-12 object-cover rounded-lg" />
-                            <div className="text-[11px] text-stone-600 truncate font-mono">{newKabarGambar}</div>
-                          </div>
-                        )}
 
                         <div className="sm:col-span-2">
                           <label className="block font-semibold text-stone-700 mb-1">Ringkasan Singkat (Muncul di Halaman Depan) *</label>
@@ -2197,46 +2066,20 @@ export function AdminDashboard() {
                           />
                         </div>
 
-                        <div>
-                          <label className="block font-semibold text-stone-700 mb-1">Foto Berita</label>
-                          <div className="space-y-2">
-                            <div className="p-2.5 bg-stone-50 border border-dashed border-stone-300 rounded-xl flex items-center justify-between">
-                              <span className="text-[11px] text-stone-500">Ganti foto:</span>
-                              <UploadButton
-                                endpoint="imageUploader"
-                                onClientUploadComplete={(res) => {
-                                  const file = res?.[0];
-                                  const url = file?.ufsUrl || file?.url;
-                                  if (url) {
-                                    const updated = [...draft.kabar];
-                                    updated[kabarView] = { ...updated[kabarView], gambar: url };
-                                    setDraft({ ...draft, kabar: updated });
-                                    showToast("Foto berita diperbarui!");
-                                  }
-                                }}
-                                onUploadError={(e) => alert(`Upload error: ${e.message}`)}
-                              />
-                            </div>
-                            <input
-                              type="text"
-                              value={draft.kabar[kabarView].gambar}
-                              onChange={(e) => {
-                                const updated = [...draft.kabar];
-                                updated[kabarView] = { ...updated[kabarView], gambar: e.target.value };
-                                setDraft({ ...draft, kabar: updated });
-                              }}
-                              className="w-full px-3 py-1.5 text-xs border border-stone-300 rounded-lg font-mono bg-white"
-                            />
-                          </div>
+                        <div className="sm:col-span-2">
+                          <AdminImageUploader
+                            label="Foto Dokumentasi Berita"
+                            description="Foto suasana kegiatan atau liputan berita. Disarankan format landscape 16:9 atau 4:3."
+                            value={draft.kabar[kabarView].gambar}
+                            onChange={(url) => {
+                              const updated = [...draft.kabar];
+                              updated[kabarView] = { ...updated[kabarView], gambar: url };
+                              setDraft({ ...draft, kabar: updated });
+                              showToast("Foto berita diperbarui!");
+                            }}
+                            aspectRatio="16/9"
+                          />
                         </div>
-
-                        {draft.kabar[kabarView].gambar && (
-                          <div className="sm:col-span-2 flex items-center gap-3 p-2 bg-stone-50 border border-stone-200 rounded-xl">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={draft.kabar[kabarView].gambar} alt="Preview" className="w-16 h-12 object-cover rounded-lg" />
-                            <div className="text-[11px] text-stone-600 truncate font-mono">{draft.kabar[kabarView].gambar}</div>
-                          </div>
-                        )}
 
                         <div className="sm:col-span-2">
                           <label className="block font-semibold text-stone-700 mb-1">Ringkasan</label>
