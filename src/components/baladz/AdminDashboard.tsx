@@ -58,6 +58,47 @@ const pendaftarStatuses = [
   "Tidak dilanjutkan",
 ] as const;
 
+export function getValidWaNumber(phone?: string): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/[^0-9]/g, "");
+  if (digits.length < 9) return null;
+  if (digits.startsWith("0")) return "62" + digits.slice(1);
+  if (digits.startsWith("62")) return digits;
+  return "62" + digits;
+}
+
+export function buildDiterimaWaUrl(pendaftar: PendaftarRow): string | null {
+  const cleanNumber = getValidWaNumber(pendaftar.no_wa);
+  if (!cleanNumber) return null;
+
+  const namaWali = pendaftar.nama_wali?.trim() || "Orang Tua / Wali Santri";
+  const namaSantri = pendaftar.nama_santri?.trim() || "-";
+  const jenjang = pendaftar.jenjang?.trim() || "Ma'had Baladz Al-Qur'an";
+
+  const pesan =
+`Assalamu'alaikum Warahmatullahi Wabarakatuh,
+
+Yth. Bapak/Ibu *${namaWali}*,
+
+Alhamdulillah, segala puji bagi Allah Subhanahu wa Ta'ala. Kami dari Panitia Penerimaan Santri Baru (PSB) Ma'had Baladz Al-Qur'an ingin menyampaikan hasil seleksi pendaftaran santri baru:
+
+• *Nama Calon Santri:* ${namaSantri}
+• *Pilihan Program:* ${jenjang}
+• *Status Hasil Seleksi:* *DITERIMA*
+
+Selamat atas diterimanya ananda di lingkungan pendidikan Ma'had Baladz Al-Qur'an. Semoga menjadi awal kebaikan dan keberkahan dalam menuntut ilmu Al-Qur'an.
+
+*Informasi Daftar Ulang & Administrasi:*
+Untuk proses konfirmasi daftar ulang, penyerahan berkas fisik, dan jadwal administrasi selanjutnya, silakan langsung membalas pesan WhatsApp ini atau menghubungi narahubung Panitia PSB Baladz.
+
+Jazakumullahu khairan wa barakallahu fikum.
+
+Wassalamu'alaikum Warahmatullahi Wabarakatuh.
+_Panitia PSB Ma'had Baladz Al-Qur'an_`;
+
+  return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(pesan)}`;
+}
+
 function createEmptyProgram(): JenjangPendidikan {
   return {
     id: "",
@@ -516,7 +557,13 @@ export function AdminDashboard() {
         setPendaftarList((prev) =>
           prev.map((item) => (item.id === id ? { ...item, status } : item))
         );
-        showToast("Status pendaftar berhasil diperbarui!");
+        if (status === "Diterima") {
+          showToast("Status diubah ke Diterima. Tombol 'Kirim WhatsApp' kini siap digunakan.");
+        } else {
+          showToast("Status pendaftar berhasil diperbarui!");
+        }
+      } else {
+        showToast("Gagal memperbarui status di server.");
       }
     } catch {
       showToast("Gagal memperbarui status.");
@@ -1404,21 +1451,27 @@ export function AdminDashboard() {
                 </div>
 
                 {/* Counter Cards */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
                     <div className="text-xs text-emerald-800 font-semibold">Total Pendaftar</div>
                     <div className="text-2xl font-bold text-emerald-950 mt-1">{pendaftarList.length}</div>
                   </div>
                   <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                    <div className="text-xs text-amber-800 font-semibold">Perlu Ditindaklanjuti</div>
+                    <div className="text-xs text-amber-800 font-semibold">Perlu Tindak Lanjut</div>
                     <div className="text-2xl font-bold text-amber-950 mt-1">
                       {pendaftarList.filter((p) => p.status === "Baru" || p.status.startsWith("Pendaftar masuk")).length}
                     </div>
                   </div>
                   <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
-                    <div className="text-xs text-blue-800 font-semibold">Sudah Ditindaklanjuti</div>
+                    <div className="text-xs text-blue-800 font-semibold">Dalam Seleksi</div>
                     <div className="text-2xl font-bold text-blue-950 mt-1">
-                      {pendaftarList.filter((p) => p.status !== "Baru" && !p.status.startsWith("Pendaftar masuk")).length}
+                      {pendaftarList.filter((p) => !["Baru", "Diterima", "Tidak dilanjutkan"].includes(p.status) && !p.status.startsWith("Pendaftar masuk")).length}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-teal-50 border border-teal-200">
+                    <div className="text-xs text-teal-800 font-semibold">Santri Diterima</div>
+                    <div className="text-2xl font-bold text-teal-950 mt-1">
+                      {pendaftarList.filter((p) => p.status === "Diterima").length}
                     </div>
                   </div>
                 </div>
@@ -1442,53 +1495,117 @@ export function AdminDashboard() {
                           <th className="py-3 px-4">Orang Tua / Wali</th>
                           <th className="py-3 px-4">WhatsApp</th>
                           <th className="py-3 px-4">Status</th>
-                          <th className="py-3 px-4 text-center">Aksi</th>
+                          <th className="py-3 px-4 text-center">Aksi & Notifikasi</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-100">
-                        {pendaftarList.map((item) => (
-                          <tr key={item.id} className="hover:bg-stone-50">
-                            <td className="py-3 px-4">
-                              <div className="font-bold text-stone-900">{item.nama_santri}</div>
-                              <div className="text-[11px] text-stone-500">{item.tgl_lahir_usia || "-"}</div>
-                              <div className="text-[10px] text-stone-400 truncate max-w-xs">{item.alamat}</div>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="font-semibold text-emerald-900">{item.jenjang}</span>
-                            </td>
-                            <td className="py-3 px-4 text-stone-700">{item.nama_wali}</td>
-                            <td className="py-3 px-4">
-                              <a
-                                href={`https://wa.me/62${item.no_wa.replace(/[^0-9]/g, "").replace(/^0/, "")}?text=Assalamu%27alaikum%20Bapak%2FIbu%20${encodeURIComponent(item.nama_wali)}%2C%20kami%20dari%20Panitia%20PSB%20Baladz.`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5" />
-                                <span>{item.no_wa}</span>
-                              </a>
-                            </td>
-                            <td className="py-3 px-4">
-                              <select
-                                value={item.status}
-                                onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                                className="px-2 py-1 border border-stone-300 rounded text-xs bg-white font-medium"
-                              >
-                                {!pendaftarStatuses.includes(item.status as (typeof pendaftarStatuses)[number]) && <option value={item.status}>{item.status} (status lama)</option>}
-                                {pendaftarStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-                              </select>
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <button
-                                onClick={() => handleDeletePendaftar(item.id)}
-                                className="p-1.5 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                                title="Hapus Data"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {pendaftarList.map((item) => {
+                          const cleanWa = getValidWaNumber(item.no_wa);
+                          const diterimaWaUrl = item.status === "Diterima" ? buildDiterimaWaUrl(item) : null;
+                          const generalWaUrl = cleanWa
+                            ? `https://wa.me/${cleanWa}?text=Assalamu%27alaikum%20Bapak%2FIbu%20${encodeURIComponent(item.nama_wali)}%2C%20kami%20dari%20Panitia%20PSB%20Baladz.`
+                            : null;
+
+                          return (
+                            <tr
+                              key={item.id}
+                              className={`hover:bg-stone-50 transition-colors ${
+                                item.status === "Diterima" ? "bg-emerald-50/25" : ""
+                              }`}
+                            >
+                              <td className="py-3 px-4">
+                                <div className="font-bold text-stone-900">{item.nama_santri}</div>
+                                <div className="text-[11px] text-stone-500">{item.tgl_lahir_usia || "-"}</div>
+                                <div className="text-[10px] text-stone-400 truncate max-w-xs">{item.alamat}</div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="font-semibold text-emerald-900">{item.jenjang}</span>
+                              </td>
+                              <td className="py-3 px-4 text-stone-700">{item.nama_wali}</td>
+                              <td className="py-3 px-4">
+                                {generalWaUrl ? (
+                                  <a
+                                    href={generalWaUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200 transition-colors"
+                                    title="Hubungi wali santri via WhatsApp"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span>{item.no_wa}</span>
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-stone-400 italic">
+                                    {item.no_wa || "Tidak tersedia"}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <select
+                                  value={item.status}
+                                  onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                                  className={`px-2.5 py-1.5 border rounded-lg text-xs font-semibold outline-none transition-colors ${
+                                    item.status === "Diterima"
+                                      ? "border-emerald-500 bg-emerald-50 text-emerald-900"
+                                      : "border-stone-300 bg-white text-stone-800"
+                                  }`}
+                                >
+                                  {!pendaftarStatuses.includes(item.status as (typeof pendaftarStatuses)[number]) && (
+                                    <option value={item.status}>{item.status} (status lama)</option>
+                                  )}
+                                  {pendaftarStatuses.map((status) => (
+                                    <option key={status} value={status}>
+                                      {status}
+                                    </option>
+                                  ))}
+                                </select>
+                                {item.status === "Diterima" && (
+                                  <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Status Diterima</span>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  {/* Tombol Kirim WhatsApp Notifikasi Diterima */}
+                                  {item.status === "Diterima" && (
+                                    cleanWa && diterimaWaUrl ? (
+                                      <a
+                                        href={diterimaWaUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0F4C3A] hover:bg-[#0c3f30] shadow-2xs transition-all hover:scale-[1.02] shrink-0 cursor-pointer"
+                                        title="Kirim pemberitahuan DITERIMA ke WhatsApp wali santri"
+                                      >
+                                        <MessageCircle className="w-3.5 h-3.5" />
+                                        <span>Kirim WhatsApp</span>
+                                      </a>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-400 bg-stone-100 border border-stone-200 cursor-not-allowed opacity-75 shrink-0"
+                                        title="Nomor WhatsApp tidak tersedia atau format tidak valid"
+                                      >
+                                        <MessageCircle className="w-3.5 h-3.5 text-stone-400" />
+                                        <span>WA Tidak Tersedia</span>
+                                      </button>
+                                    )
+                                  )}
+
+                                  <button
+                                    onClick={() => handleDeletePendaftar(item.id)}
+                                    className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                    title="Hapus Data"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
