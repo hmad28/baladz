@@ -1064,7 +1064,7 @@ export function AdminDashboard() {
       )}
 
       {/* MAIN LAYOUT */}
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
         {/* Mobile / Tablet Quick Switcher Bar */}
         <div className="lg:hidden flex items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs mb-6">
           <div className="flex items-center gap-3 min-w-0">
@@ -1089,7 +1089,7 @@ export function AdminDashboard() {
         </div>
 
         {/* Desktop Layout: Fixed Sidebar (w-72) + Fluid Main Content (flex-1 min-w-0) */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start w-full">
           {/* DESKTOP SIDEBAR */}
           <aside className="hidden lg:block w-72 shrink-0 sticky top-24">
             <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
@@ -1116,7 +1116,7 @@ export function AdminDashboard() {
           {/* MAIN CONTENT PANEL (flex-1 min-w-0 w-full, rock-solid width across all tabs) */}
           <main className="flex-1 min-w-0 w-full space-y-6">
             {activeMenu === "overview" && (
-              <div className="space-y-6">
+              <div className="w-full min-w-0 max-w-full space-y-6">
                 <div className="rounded-2xl bg-[#0F4C3A] p-6 sm:p-8 text-white">
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-300">Ringkasan Website</p>
                   <div className="mt-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -1179,7 +1179,7 @@ export function AdminDashboard() {
             {/* 1. SETUP POPUP PENGUMUMAN (DENGAN LIVE PREVIEW)         */}
             {/* ======================================================= */}
             {activeMenu === "popup" && (
-              <div className="space-y-6">
+              <div className="w-full min-w-0 max-w-full space-y-6">
                 {/* Header Card */}
                 <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -1578,7 +1578,7 @@ export function AdminDashboard() {
             {/* 2. DATA PENDAFTAR SANTRI BARU (NEON POSTGRES)           */}
             {/* ======================================================= */}
             {activeMenu === "pendaftar" && (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
+              <div className="w-full min-w-0 max-w-full bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Database Calon Santri</span>
@@ -1781,15 +1781,15 @@ export function AdminDashboard() {
                 ) : (
                   <>
                     {/* DESKTOP & TABLET TABLE (hidden md:block) */}
-                    <div className="hidden md:block overflow-x-auto rounded-xl border border-stone-200 shadow-2xs bg-white">
-                      <table className="w-full text-xs text-left border-collapse min-w-[880px]">
+                    <div className="hidden md:block w-full max-w-full overflow-x-auto rounded-xl border border-stone-200 shadow-2xs bg-white">
+                      <table className="w-full text-xs text-left border-collapse min-w-[840px]">
                         <thead className="bg-stone-100 text-stone-700 font-bold uppercase text-[11px] border-b border-stone-200 tracking-wider">
                           <tr>
-                            <th className="py-3.5 px-4 min-w-[210px]">Calon Santri</th>
-                            <th className="py-3.5 px-4 min-w-[170px]">Program / Jenjang</th>
-                            <th className="py-3.5 px-4 min-w-[190px]">Orang Tua / Wali</th>
-                            <th className="py-3.5 px-4 min-w-[190px]">Status Pendaftaran</th>
-                            <th className="py-3.5 px-4 min-w-[210px] text-center sticky right-0 z-20 bg-stone-100 border-l border-stone-200 shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.06)]">
+                            <th className="py-3.5 px-4 min-w-[180px]">Calon Santri</th>
+                            <th className="py-3.5 px-4 min-w-[140px]">Program / Jenjang</th>
+                            <th className="py-3.5 px-4 min-w-[170px]">Orang Tua / Wali</th>
+                            <th className="py-3.5 px-4 min-w-[170px]">Status Pendaftaran</th>
+                            <th className="py-3.5 px-4 min-w-[180px] text-center sticky right-0 z-20 bg-stone-100 border-l border-stone-200 shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.06)]">
                               Aksi & Notifikasi
                             </th>
                           </tr>
@@ -2166,7 +2166,7 @@ export function AdminDashboard() {
             {/* 3. PSB & BIAYA PENDAFTARAN                              */}
             {/* ======================================================= */}
             {activeMenu === "psb" && (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
+              <div className="w-full min-w-0 max-w-full bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Penerimaan Santri Baru</span>
@@ -2397,7 +2397,7 @@ export function AdminDashboard() {
             {/* 4. PROGRAM PENDIDIKAN: LIST, CREATE, DETAIL             */}
             {/* ======================================================= */}
             {activeMenu === "jenjang" && (
-              <div className="rounded-2xl border border-stone-200 bg-white shadow-2xs">
+              <div className="w-full min-w-0 max-w-full rounded-2xl border border-stone-200 bg-white shadow-2xs">
                 {programView === null && (
                   <div className="animate-in fade-in duration-200">
                     <div className="flex flex-col gap-5 border-b border-stone-200 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
@@ -2613,7 +2613,7 @@ export function AdminDashboard() {
             {/* 5. KABAR BALADZ (LIST VIEW + DEDICATED CREATE/EDIT VIEW)*/}
             {/* ======================================================= */}
             {activeMenu === "kabar" && (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
+              <div className="w-full min-w-0 max-w-full bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
                 {/* 5A. VIEW: TAMBAH KABAR BARU (HALAMAN TERSENDIRI) */}
                 {kabarView === "new" && (
                   <div className="space-y-5 animate-in fade-in duration-200">
@@ -2946,7 +2946,7 @@ export function AdminDashboard() {
             {/* 7. KONTAK & YAYASAN                                     */}
             {/* ======================================================= */}
             {activeMenu === "kontak" && (
-              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
+              <div className="w-full min-w-0 max-w-full bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-[#D97706]">Kontak & Legalitas</span>
                   <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-0.5">

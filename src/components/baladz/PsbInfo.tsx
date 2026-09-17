@@ -33,7 +33,7 @@ export function PsbInfo() {
 
   return (
     <main className="min-h-screen bg-[#FAF8F5] text-[#1C2826] font-sans">
-      <header className="border-b border-stone-200 bg-white">
+      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 backdrop-blur-xs">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="relative h-10 w-36">
             <Image src="/images/baladz/logo.png" alt="Logo Baladz" fill className="object-contain" priority />
@@ -239,7 +239,7 @@ export function PsbInfo() {
           </div>
 
           {/* Pembayaran & Rekening Resmi (Sticky Sidebar on Desktop) */}
-          <div className="h-fit self-start lg:sticky lg:top-8 rounded-2xl bg-[#0F4C3A] p-6 text-white sm:p-8 shadow-sm border border-emerald-800 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
+          <div className="h-fit self-start lg:sticky lg:top-20 rounded-2xl bg-[#0F4C3A] p-6 text-white sm:p-8 shadow-sm border border-emerald-800 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-2 border border-white/10">
                 Instruksi Resmi
