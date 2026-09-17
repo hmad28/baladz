@@ -38,10 +38,19 @@ export function PsbInfo() {
           <Link href="/" className="relative h-10 w-36">
             <Image src="/images/baladz/logo.png" alt="Logo Baladz" fill className="object-contain" priority />
           </Link>
-          <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 sm:text-sm hover:underline">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Kembali ke beranda</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0F4C3A] bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition"
+            >
+              <Users className="h-3.5 w-3.5 text-[#D97706]" />
+              <span>Dashboard Santri</span>
+            </Link>
+            <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 sm:text-sm hover:underline">
+              <ArrowLeft className="h-4 w-4" />
+              <span>Kembali</span>
+            </Link>
+          </div>
         </div>
       </header>
 

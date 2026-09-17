@@ -90,6 +90,8 @@ export function resolvePopupCtaUrl(popup?: PopupSettings, defaultWa: string = "0
   return `https://wa.me/${formattedWa}?text=${encodeURIComponent(pesan)}`;
 }
 
+export type SiteContent = BaladzSiteContent;
+
 export interface BaladzSiteContent {
   contentVersion: number;
   sourceNotes: Record<string, string>;

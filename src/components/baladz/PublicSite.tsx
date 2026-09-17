@@ -7,8 +7,11 @@ import {
   ArrowRight,
   BookOpen,
   Calendar,
+  Check,
   CheckCircle2,
+  Copy,
   GraduationCap,
+  KeyRound,
   Mail,
   MapPin,
   Menu,
@@ -16,6 +19,7 @@ import {
   Phone,
   Send,
   ShieldCheck,
+  Users,
   X,
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
@@ -81,6 +85,15 @@ export function PublicSite() {
   const [formAlamat, setFormAlamat] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [registrationSuccessData, setRegistrationSuccessData] = useState<{
+    no_pendaftaran: string;
+    password?: string;
+    nama_santri: string;
+    jenjang: string;
+    waUrl: string;
+  } | null>(null);
+  const [copiedNo, setCopiedNo] = useState(false);
+  const [copiedPass, setCopiedPass] = useState(false);
 
   // Modal baca Kabar Baladz
   const [activeKabarModal, setActiveKabarModal] = useState<BeritaKabar | null>(null);
@@ -93,7 +106,6 @@ export function PublicSite() {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitError(null);
-    const waWindow = window.open("about:blank", "_blank");
 
     try {
       const response = await fetch("/api/pendaftar", {
@@ -108,24 +120,36 @@ export function PublicSite() {
           alamat: formAlamat,
         }),
       });
-      if (!response.ok) throw new Error("Data pendaftar belum tersimpan");
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Data pendaftar belum tersimpan");
+      }
+
+      const noPendaftaran = data.no_pendaftaran || "BLZ-260001";
+      const plainPassword = data.password || "";
 
       const pesan = `*PENDAFTARAN SANTRI BARU BALADZ ${content.psb.tahunAjaran}*%0A%0A`
+      + `*No. Pendaftaran:* ${encodeURIComponent(noPendaftaran)}%0A`
       + `*Nama Calon Santri:* ${encodeURIComponent(formNamaSantri)}%0A`
       + `*Tanggal Lahir / Usia:* ${encodeURIComponent(formTglLahir)}%0A`
       + `*Pilihan Jenjang:* ${encodeURIComponent(registerJenjang)}%0A`
       + `*Nama Orang Tua / Wali:* ${encodeURIComponent(formNamaWali)}%0A`
       + `*No. WhatsApp:* ${encodeURIComponent(formNoWa)}%0A`
       + `*Alamat Domisili:* ${encodeURIComponent(formAlamat)}%0A%0A`
-      + `Data saya sudah masuk melalui website. Mohon tindak lanjut informasi seleksi. Pesan ini belum terkirim sampai saya menekan tombol kirim di WhatsApp.`;
+      + `Alhamdulillah saya telah mengisi formulir pendaftaran melalui website baladz.net dengan Nomor Pendaftaran: *${encodeURIComponent(noPendaftaran)}*. Mohon petunjuk kelengkapan berkas dan tahapan seleksi selanjutnya. Jazakumullahu khairan.`;
 
       const waUrl = `https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${pesan}`;
-      if (waWindow) waWindow.location.href = waUrl;
-      else window.location.href = waUrl;
-      setIsRegisterModalOpen(false);
-    } catch {
-      waWindow?.close();
-      setSubmitError("Data belum berhasil disimpan. Periksa koneksi lalu coba lagi.");
+
+      setRegistrationSuccessData({
+        no_pendaftaran: noPendaftaran,
+        password: plainPassword,
+        nama_santri: formNamaSantri,
+        jenjang: registerJenjang,
+        waUrl,
+      });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Data belum berhasil disimpan. Periksa koneksi lalu coba lagi.";
+      setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -272,14 +296,23 @@ export function PublicSite() {
               </button>
             </div>
 
-            {/* Tombol Aksi Cepat: Daftar Santri Baru */}
-            <div className="hidden sm:flex items-center gap-3">
+            {/* Tombol Aksi Cepat: Dashboard Santri & Daftar Santri Baru */}
+            <div className="hidden sm:flex items-center gap-2.5">
+              <Link
+                href="/dashboard"
+                className="text-emerald-100 hover:text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold border border-emerald-600/70 hover:border-amber-300 hover:bg-emerald-800/60 transition-all flex items-center gap-1.5"
+                title="Buka Dashboard Calon Santri untuk cek berkas & hasil seleksi"
+              >
+                <Users className="w-3.5 h-3.5 text-amber-300" />
+                <span>Dashboard Santri</span>
+              </Link>
+
               <button
                 onClick={() => {
                   setActiveTab("beranda");
                   setIsRegisterModalOpen(true);
                 }}
-                className="bg-[#D97706] hover:bg-[#B45309] text-white px-4 py-2 rounded-md font-semibold text-xs sm:text-sm tracking-wide shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer"
+                className="bg-[#D97706] hover:bg-[#B45309] text-white px-4 py-2 rounded-lg font-bold text-xs sm:text-sm tracking-wide shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer"
               >
                 <GraduationCap className="w-4 h-4" />
                 <span>{content.cta.teksDaftar} (PSB)</span>
@@ -304,7 +337,7 @@ export function PublicSite() {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-emerald-800 bg-[#0c3f30] px-4 pt-2 pb-4 space-y-1">
+          <div className="md:hidden border-t border-emerald-800 bg-[#0c3f30] px-4 pt-2 pb-4 space-y-2">
             <button
               onClick={() => {
                 setActiveTab("beranda");
@@ -329,14 +362,22 @@ export function PublicSite() {
             >
               Kabar Baladz
             </button>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-2">
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full bg-[#0F4C3A] hover:bg-[#093528] text-white py-2.5 px-4 rounded-xl font-bold text-center text-sm border border-emerald-600/80 flex items-center justify-center gap-2"
+              >
+                <Users className="w-4 h-4 text-amber-300" />
+                <span>Dashboard Calon Santri</span>
+              </Link>
               <button
                 onClick={() => {
                   setActiveTab("beranda");
                   setIsRegisterModalOpen(true);
                   setMobileMenuOpen(false);
                 }}
-                className="w-full bg-[#D97706] hover:bg-[#B45309] text-white py-2.5 px-4 rounded-md font-bold text-center text-sm shadow flex items-center justify-center gap-2"
+                className="w-full bg-[#D97706] hover:bg-[#B45309] text-white py-2.5 px-4 rounded-xl font-bold text-center text-sm shadow flex items-center justify-center gap-2 cursor-pointer"
               >
                 <GraduationCap className="w-4 h-4" />
                 {content.cta.teksDaftar} (PSB)
@@ -1145,119 +1186,248 @@ export function PublicSite() {
       {/* 6. MODAL FORMULIR PENDAFTARAN ONLINE */}
       {isRegisterModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl relative">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl relative border border-stone-100">
             <button
-              onClick={() => setIsRegisterModalOpen(false)}
-              className="absolute top-5 right-5 text-stone-400 hover:text-stone-700 p-1"
+              onClick={() => {
+                setIsRegisterModalOpen(false);
+                setRegistrationSuccessData(null);
+              }}
+              className="absolute top-5 right-5 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition"
               aria-label="Tutup"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="mb-6">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#D97706]">Formulir PSB</span>
-              <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-1">
-                Pendaftaran Santri Baru {content.psb.tahunAjaran}
-              </h3>
-              <p className="text-xs text-stone-500 mt-1">
-                Data masuk ke dashboard staf terlebih dahulu. Setelah itu WhatsApp terbuka dengan pesan siap kirim.
-              </p>
-            </div>
-
-            <form onSubmit={handleFormSubmit} className="space-y-4 text-xs sm:text-sm">
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">Nama Calon Santri *</label>
-                <input
-                  type="text"
-                  required
-                  value={formNamaSantri}
-                  onChange={(e) => setFormNamaSantri(e.target.value)}
-                  placeholder="Contoh: Muhammad Fatih Al-Qurthubi"
-                  className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Tanggal Lahir / Usia *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formTglLahir}
-                    onChange={(e) => setFormTglLahir(e.target.value)}
-                    placeholder="Contoh: 15 Mei 2021 (5 Th)"
-                    className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
-                  />
+            {registrationSuccessData ? (
+              /* SCREEN SUKSES PENDAFTARAN DENGAN KREDENSIAL & AKSES LANGSUNG */
+              <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                <div className="text-center space-y-2 pt-2">
+                  <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 border border-emerald-300/60 flex items-center justify-center text-[#0F4C3A]">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-700" />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#D97706]">Pendaftaran Berhasil</span>
+                  <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A]">
+                    Ahlan Wa Sahlan!
+                  </h3>
+                  <p className="text-xs text-stone-600 max-w-md mx-auto leading-relaxed">
+                    Formulir pendaftaran untuk ananda <strong className="text-stone-900">{registrationSuccessData.nama_santri}</strong> berhasil tersimpan dalam sistem PSB Baladz.
+                  </p>
                 </div>
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Pilihan Jenjang *</label>
-                  <select
-                    value={registerJenjang}
-                    onChange={(e) => setRegisterJenjang(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800 bg-white"
+
+                {/* Akun Login Calon Santri */}
+                <div className="bg-[#FAF8F5] border-2 border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                    <span className="text-xs font-bold text-[#0F4C3A] uppercase tracking-wider flex items-center gap-1.5">
+                      <KeyRound className="w-4 h-4 text-[#D97706]" />
+                      <span>Akun Dashboard Calon Santri</span>
+                    </span>
+                    <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                      Sesi Otomatis Aktif
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-2xs">
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block mb-0.5">Nomor Pendaftaran</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-mono text-base font-bold text-[#0F4C3A] tracking-wider truncate">
+                          {registrationSuccessData.no_pendaftaran}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(registrationSuccessData.no_pendaftaran);
+                            setCopiedNo(true);
+                            setTimeout(() => setCopiedNo(false), 2000);
+                          }}
+                          className="text-stone-400 hover:text-emerald-800 p-1 transition cursor-pointer"
+                          title="Salin No Pendaftaran"
+                        >
+                          {copiedNo ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-2xs">
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block mb-0.5">Kata Sandi (Password)</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-mono text-base font-bold text-stone-800 tracking-wider">
+                          {registrationSuccessData.password || "••••••••"}
+                        </span>
+                        {registrationSuccessData.password && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(registrationSuccessData.password!);
+                              setCopiedPass(true);
+                              setTimeout(() => setCopiedPass(false), 2000);
+                            }}
+                            className="text-stone-400 hover:text-emerald-800 p-1 transition cursor-pointer"
+                            title="Salin Password"
+                          >
+                            {copiedPass ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-stone-500 leading-snug">
+                    * Harap simpan atau screenshot nomor pendaftaran dan kata sandi di atas untuk memantau status berkas, konfirmasi pembayaran, jadwal seleksi, dan pengumuman.
+                  </p>
+                </div>
+
+                {/* Tombol Aksi */}
+                <div className="space-y-2.5 pt-1">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => {
+                      setIsRegisterModalOpen(false);
+                      setRegistrationSuccessData(null);
+                    }}
+                    className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 rounded-xl font-bold text-sm shadow flex items-center justify-center gap-2 transition hover:scale-[1.01]"
                   >
-                    {content.jenjang.map((j) => (
-                      <option key={j.id} value={j.nama}>
-                        {j.nama}
-                      </option>
-                    ))}
-                  </select>
+                    <Users className="w-4 h-4 text-amber-300" />
+                    <span>Buka Dashboard Calon Santri Sekarang</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+
+                  <a
+                    href={registrationSuccessData.waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm shadow flex items-center justify-center gap-2 transition hover:scale-[1.01]"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Kirim Konfirmasi via WhatsApp Panitia</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegisterModalOpen(false);
+                      setRegistrationSuccessData(null);
+                      setFormNamaSantri("");
+                      setFormTglLahir("");
+                      setFormNamaWali("");
+                      setFormNoWa("");
+                      setFormAlamat("");
+                    }}
+                    className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-stone-800 transition cursor-pointer"
+                  >
+                    Tutup
+                  </button>
                 </div>
               </div>
+            ) : (
+              /* FORMULIR PENDAFTARAN AWAL */
+              <>
+                <div className="mb-6">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#D97706]">Formulir PSB</span>
+                  <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#0F4C3A] mt-1">
+                    Pendaftaran Santri Baru {content.psb.tahunAjaran}
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Setelah mengisi formulir, Anda akan memperoleh Nomor Pendaftaran & akun Dashboard Calon Santri.
+                  </p>
+                </div>
 
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">Nama Orang Tua / Wali *</label>
-                <input
-                  type="text"
-                  required
-                  value={formNamaWali}
-                  onChange={(e) => setFormNamaWali(e.target.value)}
-                  placeholder="Contoh: Abdullah / Ummu Fatih"
-                  className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
-                />
-              </div>
+                <form onSubmit={handleFormSubmit} className="space-y-4 text-xs sm:text-sm">
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">Nama Calon Santri *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNamaSantri}
+                      onChange={(e) => setFormNamaSantri(e.target.value)}
+                      placeholder="Contoh: Muhammad Fatih Al-Qurthubi"
+                      className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
+                    />
+                  </div>
 
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">No. WhatsApp Aktif *</label>
-                <input
-                  type="tel"
-                  required
-                  value={formNoWa}
-                  onChange={(e) => setFormNoWa(e.target.value)}
-                  placeholder="Contoh: 08123456789"
-                  className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
-                />
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">Tanggal Lahir / Usia *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formTglLahir}
+                        onChange={(e) => setFormTglLahir(e.target.value)}
+                        placeholder="Contoh: 15 Mei 2021 (5 Th)"
+                        className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">Pilihan Jenjang *</label>
+                      <select
+                        value={registerJenjang}
+                        onChange={(e) => setRegisterJenjang(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800 bg-white"
+                      >
+                        {content.jenjang.map((j) => (
+                          <option key={j.id} value={j.nama}>
+                            {j.nama}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">Alamat Domisili / Kota *</label>
-                <textarea
-                  rows={2}
-                  required
-                  value={formAlamat}
-                  onChange={(e) => setFormAlamat(e.target.value)}
-                  placeholder="Contoh: Jatihandap, Kec. Mandalajati, Bandung"
-                  className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800 resize-none"
-                />
-              </div>
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">Nama Orang Tua / Wali *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNamaWali}
+                      onChange={(e) => setFormNamaWali(e.target.value)}
+                      placeholder="Contoh: Abdullah / Ummu Fatih"
+                      className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
+                    />
+                  </div>
 
-              <div className="p-3 bg-emerald-50 rounded-lg text-xs text-emerald-900 border border-emerald-200">
-                Membuka WhatsApp belum mengirim pesan. Periksa pesan yang sudah disiapkan, lalu tekan Kirim di WhatsApp agar tim Baladz dapat menindaklanjuti.
-              </div>
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">No. WhatsApp Aktif *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={formNoWa}
+                      onChange={(e) => setFormNoWa(e.target.value)}
+                      placeholder="Contoh: 08123456789"
+                      className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800"
+                    />
+                  </div>
 
-              {submitError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">{submitError}</p>}
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">Alamat Domisili / Kota *</label>
+                    <textarea
+                      rows={2}
+                      required
+                      value={formAlamat}
+                      onChange={(e) => setFormAlamat(e.target.value)}
+                      placeholder="Contoh: Jatihandap, Kec. Mandalajati, Bandung"
+                      className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800 resize-none"
+                    />
+                  </div>
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 rounded-lg font-bold text-sm shadow flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Send className="w-4 h-4" />
-                  {isSubmitting ? "Menyimpan data..." : "Simpan Data & Buka WhatsApp"}
-                </button>
-              </div>
-            </form>
+                  <div className="p-3 bg-emerald-50 rounded-lg text-xs text-emerald-900 border border-emerald-200">
+                    Setelah simpan, data otomatis masuk ke sistem dan akun Calon Santri langsung aktif untuk memantau proses PSB.
+                  </div>
+
+                  {submitError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">{submitError}</p>}
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-[#0F4C3A] hover:bg-[#0c3f30] text-white py-3 rounded-lg font-bold text-sm shadow flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Send className="w-4 h-4" />
+                      {isSubmitting ? "Menyimpan data..." : "Daftar Sekarang & Buat Akun"}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
