@@ -221,6 +221,9 @@ export function SantriDashboard() {
   // Modal cetak bukti pendaftaran
   const [isPrintBuktiOpen, setIsPrintBuktiOpen] = useState(false);
 
+  // Modal template format surat kesanggupan
+  const [isSuratTemplateModalOpen, setIsSuratTemplateModalOpen] = useState(false);
+
   // Toast feedback
   const [toast, setToast] = useState<string | null>(null);
 
@@ -1271,17 +1274,52 @@ export function SantriDashboard() {
                       Format surat pernyataan kesanggupan orang tua/wali santri
                     </p>
                   </div>
-                  <a
-                    href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${encodeURIComponent(
-                      `Assalamu'alaikum Panitia PSB Baladz, saya ingin meminta file template Surat Kesanggupan untuk pendaftar ${profile.no_pendaftaran} a.n. ${profile.nama_santri}.`
-                    )}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-2 px-3 rounded-lg bg-white border border-stone-300 hover:bg-stone-50 text-stone-800 text-xs font-bold transition flex items-center justify-center gap-1.5"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Minta Template via WA</span>
-                  </a>
+                  <div className="space-y-1.5 w-full">
+                    {content.psb.templateSuratKesanggupanUrl ? (
+                      <>
+                        <a
+                          href={content.psb.templateSuratKesanggupanUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                          className="w-full py-2 px-3 rounded-lg bg-[#0F4C3A] hover:bg-[#0c3f30] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs"
+                        >
+                          <Download className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Unduh Format Surat</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setIsSuratTemplateModalOpen(true)}
+                          className="w-full py-1.5 px-3 rounded-lg bg-white border border-stone-300 hover:bg-stone-100 text-stone-700 text-[11px] font-semibold transition flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <Printer className="w-3 h-3 text-stone-500" />
+                          <span>Cetak / Lihat Draf</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setIsSuratTemplateModalOpen(true)}
+                          className="w-full py-2 px-3 rounded-lg bg-[#0F4C3A] hover:bg-[#0c3f30] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Lihat & Cetak Draf Format</span>
+                        </button>
+                        <a
+                          href={`https://wa.me/62${content.kontak.whatsappUtama.replace(/^0/, "")}?text=${encodeURIComponent(
+                            `Assalamu'alaikum Panitia PSB Baladz, saya ingin menanyakan file template Surat Kesanggupan untuk pendaftar ${profile.no_pendaftaran} a.n. ${profile.nama_santri}.`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-1 px-2 text-[10px] text-stone-500 hover:text-emerald-800 transition flex items-center justify-center gap-1"
+                        >
+                          <MessageCircle className="w-3 h-3 text-emerald-700" />
+                          <span>Tanya Panitia via WA</span>
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1379,6 +1417,30 @@ export function SantriDashboard() {
                           <td className="py-3 px-4">
                             <div className="font-bold text-stone-900">{master.nama}</div>
                             <div className="text-[10px] text-stone-400 mt-0.5 line-clamp-1">{master.deskripsi}</div>
+                            {master.kode === "surat_kesanggupan" && (
+                              <div className="mt-1 flex items-center gap-2">
+                                {content.psb.templateSuratKesanggupanUrl ? (
+                                  <a
+                                    href={content.psb.templateSuratKesanggupanUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    download
+                                    className="text-[10px] font-bold text-emerald-800 hover:text-emerald-950 inline-flex items-center gap-1 hover:underline"
+                                  >
+                                    <Download className="w-3 h-3 text-emerald-700" />
+                                    <span>Unduh format resmi</span>
+                                  </a>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => setIsSuratTemplateModalOpen(true)}
+                                  className="text-[10px] font-bold text-stone-600 hover:text-[#0F4C3A] inline-flex items-center gap-1 hover:underline cursor-pointer"
+                                >
+                                  <Printer className="w-3 h-3 text-stone-500" />
+                                  <span>Buka format draf</span>
+                                </button>
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             {master.wajib ? (
@@ -2041,6 +2103,163 @@ export function SantriDashboard() {
               >
                 <Printer className="w-4 h-4" />
                 <span>Cetak / Cetak PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL LIHAT & CETAK FORMAT SURAT KESANGGUPAN            */}
+      {/* ======================================================== */}
+      {isSuratTemplateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-2xl relative space-y-6">
+            <button
+              onClick={() => setIsSuratTemplateModalOpen(false)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 p-1 print:hidden cursor-pointer"
+              aria-label="Tutup"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Kop Surat Header */}
+            <div className="border-b-2 border-[#0F4C3A] pb-4 flex items-center justify-between gap-4">
+              <div className="relative h-12 w-40">
+                <Image src="/images/baladz/logo.png" alt="Baladz" fill className="object-contain" />
+              </div>
+              <div className="text-right">
+                <div className="font-serif font-bold text-sm sm:text-base text-[#0F4C3A] uppercase tracking-wide">
+                  Surat Pernyataan Kesanggupan
+                </div>
+                <div className="text-[11px] text-stone-500">
+                  Orang Tua / Wali Santri — PSB TA {content.psb.tahunAjaran}
+                </div>
+              </div>
+            </div>
+
+            {/* Isi Surat Kesanggupan */}
+            <div className="space-y-4 text-xs text-stone-800 leading-relaxed font-sans">
+              <div className="text-center font-bold text-sm tracking-wide uppercase text-stone-900 pb-1">
+                SURAT PERNYATAAN KESANGGUPAN ORANG TUA / WALI SANTRI
+                <br />
+                <span className="text-[11px] font-normal lowercase italic text-stone-600">
+                  Ma&apos;had Baladz Al-Qur&apos;an Bandung
+                </span>
+              </div>
+
+              <p>Yang bertanda tangan di bawah ini:</p>
+
+              <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-1.5 text-xs">
+                <div className="grid grid-cols-[140px_1fr] gap-2">
+                  <span className="text-stone-500">Nama Orang Tua / Wali</span>
+                  <span className="font-bold text-stone-900">: {profile.nama_wali || "................................................"}</span>
+                </div>
+                <div className="grid grid-cols-[140px_1fr] gap-2">
+                  <span className="text-stone-500">No. WhatsApp / Telepon</span>
+                  <span className="font-mono font-medium text-stone-800">: {profile.no_wa || "................................................"}</span>
+                </div>
+                <div className="grid grid-cols-[140px_1fr] gap-2">
+                  <span className="text-stone-500">Alamat Tempat Tinggal</span>
+                  <span className="text-stone-800">: {profile.alamat || "................................................"}</span>
+                </div>
+              </div>
+
+              <p>Adalah benar merupakan orang tua / wali dari calon santri:</p>
+
+              <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-200/60 space-y-1.5 text-xs">
+                <div className="grid grid-cols-[140px_1fr] gap-2">
+                  <span className="text-emerald-800 font-semibold">Nama Calon Santri</span>
+                  <span className="font-bold text-emerald-950">: {profile.nama_santri}</span>
+                </div>
+                <div className="grid grid-cols-[140px_1fr] gap-2">
+                  <span className="text-emerald-800 font-semibold">No. Pendaftaran</span>
+                  <span className="font-mono font-bold text-[#0F4C3A]">: {profile.no_pendaftaran}</span>
+                </div>
+                <div className="grid grid-cols-[140px_1fr] gap-2">
+                  <span className="text-emerald-800 font-semibold">Jenjang / Program</span>
+                  <span className="font-medium text-stone-800">: {profile.jenjang}</span>
+                </div>
+              </div>
+
+              <p>
+                Dengan ini menyatakan dengan sadar dan sesungguhnya bahwa apabila putra/putri kami dinyatakan <strong>DITERIMA</strong> sebagai santri di Ma&apos;had Baladz Al-Qur&apos;an, kami:
+              </p>
+
+              <ol className="list-decimal pl-5 space-y-2 text-stone-700">
+                <li>
+                  <strong>Mendukung Penuh Pendidikan Al-Qur&apos;an:</strong> Bersedia membimbing, memotivasi, dan mendampingi ananda dalam menuntaskan kurikulum tilawah bersanad 30 Juz dan hafalan mutqin serta pembinaan adab Islami di Ma&apos;had Baladz.
+                </li>
+                <li>
+                  <strong>Mentaati Tata Tertib & Disiplin:</strong> Mentaati dan mematuhi seluruh peraturan, tata tertib ma&apos;had/sekolah, jadwal kegiatan belajar mengajar, serta kebijakan pengasuhan yang ditetapkan.
+                </li>
+                <li>
+                  <strong>Kewajiban Administrasi & Biaya:</strong> Menyelesaikan kewajiban biaya pendaftaran, biaya daftar ulang (infaq pangkal), dan SPP/biaya pendidikan bulanan secara tepat waktu sesuai jadwal yang disepakati.
+                </li>
+                <li>
+                  <strong>Kemitraan & Sinergi:</strong> Menjalin komunikasi yang baik dan saling menghormati dengan pimpinan lembaga, dewan asatidzah, dan staf demi kemaslahatan pendidikan ananda.
+                </li>
+              </ol>
+
+              <p className="text-[11px] text-stone-600 pt-1">
+                Demikian surat pernyataan kesanggupan ini kami buat dengan penuh kesadaran dan tanpa paksaan dari pihak manapun untuk dipergunakan sebagaimana mestinya.
+              </p>
+
+              {/* Tanda Tangan */}
+              <div className="pt-6 grid grid-cols-2 gap-6 text-center text-xs">
+                <div className="flex flex-col justify-between h-36">
+                  <div>
+                    <span className="text-stone-500">Mengetahui,</span>
+                    <div className="font-semibold text-stone-700 mt-1">Panitia PSB Baladz</div>
+                  </div>
+                  <div className="text-[11px] text-stone-400">(Tanda Tangan & Stempel)</div>
+                </div>
+
+                <div className="flex flex-col justify-between items-center h-36">
+                  <div>
+                    <span className="text-stone-500">Bandung, ............................ 202...</span>
+                    <div className="font-semibold text-stone-800 mt-1">Orang Tua / Wali Santri</div>
+                  </div>
+                  <div className="w-24 h-12 border border-dashed border-stone-300 rounded flex items-center justify-center text-[9px] text-stone-400 my-1">
+                    Materai 10.000
+                  </div>
+                  <div className="font-bold text-stone-900 border-t border-stone-800 pt-1 w-44">
+                    ( {profile.nama_wali || "Nama Orang Tua / Wali"} )
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-stone-100 justify-end print:hidden">
+              <button
+                type="button"
+                onClick={() => setIsSuratTemplateModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 cursor-pointer"
+              >
+                Tutup
+              </button>
+
+              {content.psb.templateSuratKesanggupanUrl && (
+                <a
+                  href={content.psb.templateSuratKesanggupanUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className="px-4 py-2 text-xs font-bold rounded-xl border border-emerald-700 text-emerald-800 hover:bg-emerald-50 inline-flex items-center gap-1.5 transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh File Asli (Word / PDF)</span>
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-5 py-2 text-xs font-bold rounded-xl bg-[#0F4C3A] text-white hover:bg-[#0c3f30] flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Cetak / Print Surat Ini</span>
               </button>
             </div>
           </div>

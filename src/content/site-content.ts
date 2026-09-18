@@ -130,6 +130,7 @@ export interface BaladzSiteContent {
     alurPendaftaran: AlurPsbStep[];
     syaratBerkas: string[];
     materiSeleksi: string[];
+    templateSuratKesanggupanUrl?: string;
     rekeningPembayaran: {
       bank: string;
       nomorRekening: string;
@@ -272,6 +273,7 @@ export const defaultSiteContent: BaladzSiteContent = {
       "Seleksi dilakukan melalui video call sesuai jadwal gelombang.",
       "Materi seleksi masih menunggu konfirmasi final tim Baladz.",
     ],
+    templateSuratKesanggupanUrl: "",
     rekeningPembayaran: {
       bank: "Rekening Resmi Yayasan",
       nomorRekening: "3888822339",
