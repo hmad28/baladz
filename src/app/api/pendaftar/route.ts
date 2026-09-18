@@ -78,6 +78,7 @@ export async function POST(req: Request) {
       status_asrama,
       asal_sekolah,
       nama_ibu,
+      foto_santri,
     } = body;
 
     if (!nama_santri || !jenjang || !nama_wali || !no_wa) {
@@ -100,17 +101,29 @@ export async function POST(req: Request) {
       INSERT INTO pendaftar (
         id, no_pendaftaran, password_hash, plain_password,
         nama_santri, tgl_lahir_usia, jenjang, nama_wali, no_wa, alamat,
-        jenis_kelamin, cita_cita, status_asrama, asal_sekolah, nama_ibu,
+        foto_santri, jenis_kelamin, cita_cita, status_asrama, asal_sekolah, nama_ibu,
         status, status_berkas, status_pembayaran, created_at
       )
       VALUES (
         ${nextId}, ${noPendaftaran}, ${hashed}, ${generatedPass},
         ${nama_santri}, ${tgl_lahir_usia || ""}, ${jenjang}, ${nama_wali}, ${no_wa}, ${alamat || ""},
-        ${jenis_kelamin || ""}, ${cita_cita || ""}, ${status_asrama || "Ya, asrama"}, ${asal_sekolah || ""}, ${nama_ibu || ""},
+        ${foto_santri || null}, ${jenis_kelamin || ""}, ${cita_cita || ""}, ${status_asrama || "Ya, asrama"}, ${asal_sekolah || ""}, ${nama_ibu || ""},
         'Pendaftar masuk — belum ditindaklanjuti', 'Belum Lengkap', 'Belum Bayar', NOW()
       )
       RETURNING id, no_pendaftaran, nama_santri, jenjang, nama_wali, no_wa, plain_password, created_at;
     `;
+
+    if (foto_santri) {
+      try {
+        await sql`
+          INSERT INTO pendaftar_berkas (pendaftar_id, kode_berkas, nama_berkas, file_url, status, created_at, updated_at)
+          VALUES (${nextId}, 'foto_santri', 'Pas Foto Calon Santri', ${foto_santri}, 'menunggu_verifikasi', NOW(), NOW())
+          ON CONFLICT (pendaftar_id, kode_berkas) DO UPDATE SET file_url = EXCLUDED.file_url, status = 'menunggu_verifikasi', updated_at = NOW();
+        `;
+      } catch (berkasErr) {
+        console.error("Error inserting initial foto_santri to pendaftar_berkas:", berkasErr);
+      }
+    }
 
     const newSantri = inserted[0];
 

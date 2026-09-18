@@ -8,6 +8,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Calendar,
+  Camera,
   Check,
   CheckCircle2,
   Clock,
@@ -29,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
+import { SantriFileUploader } from "./SantriFileUploader";
 
 export interface PendaftarBerkasItem {
   id: number;
@@ -200,6 +202,22 @@ export function SantriDashboard() {
   const [daftarUlangBuktiUrl, setDaftarUlangBuktiUrl] = useState("");
   const [isSubmittingDaftarUlang, setIsSubmittingDaftarUlang] = useState(false);
 
+  // Modal upload berkas langsung per baris
+  const [rowUploadModal, setRowUploadModal] = useState<{
+    kode: string;
+    nama: string;
+    deskripsi?: string;
+    wajib: boolean;
+    currentUrl?: string;
+  } | null>(null);
+  const [rowUploadUrl, setRowUploadUrl] = useState("");
+  const [isSavingRowUpload, setIsSavingRowUpload] = useState(false);
+
+  // Modal upload pas foto santri
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [isSavingPhoto, setIsSavingPhoto] = useState(false);
+
   // Modal cetak bukti pendaftaran
   const [isPrintBuktiOpen, setIsPrintBuktiOpen] = useState(false);
 
@@ -313,6 +331,58 @@ export function SantriDashboard() {
       alert(err instanceof Error ? err.message : "Gagal menyimpan berkas");
     } finally {
       setIsUploadingBerkas(false);
+    }
+  };
+
+  const handleSaveRowUpload = async () => {
+    if (!rowUploadModal || !rowUploadUrl.trim()) {
+      alert("Harap pilih dan unggah berkas terlebih dahulu");
+      return;
+    }
+    setIsSavingRowUpload(true);
+    try {
+      await handleUploadBerkas(rowUploadModal.kode, rowUploadModal.nama, rowUploadUrl);
+      setRowUploadModal(null);
+      setRowUploadUrl("");
+    } finally {
+      setIsSavingRowUpload(false);
+    }
+  };
+
+  const handleSavePhoto = async () => {
+    if (!newPhotoUrl.trim()) {
+      alert("Harap pilih atau unggah pas foto calon santri terlebih dahulu");
+      return;
+    }
+    setIsSavingPhoto(true);
+    try {
+      const res = await fetch("/api/santri/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ foto_santri: newPhotoUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal memperbarui foto profil santri");
+      }
+      // Simpan juga ke berkas persyaratan
+      await fetch("/api/santri/berkas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kode_berkas: "foto_santri",
+          nama_berkas: "Pas Foto Calon Santri",
+          file_url: newPhotoUrl.trim(),
+        }),
+      });
+      showToast("Pas foto santri berhasil diperbarui!");
+      await fetchProfile();
+      setIsPhotoModalOpen(false);
+      setNewPhotoUrl("");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal menyimpan foto");
+    } finally {
+      setIsSavingPhoto(false);
     }
   };
 
@@ -882,14 +952,29 @@ export function SantriDashboard() {
                 <div className="space-y-6">
                   {/* Foto Profil & Header Singkat */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-5 bg-[#FAF8F5] rounded-2xl border border-stone-200/80">
-                    <div className="relative w-24 h-32 rounded-xl bg-stone-200 overflow-hidden border-2 border-white shadow-sm flex items-center justify-center shrink-0">
-                      {profile.foto_santri ? (
-                        <Image src={profile.foto_santri} alt={profile.nama_santri} fill className="object-cover" />
-                      ) : (
-                        <div className="text-center p-2 text-stone-400">
-                          <User className="w-10 h-10 mx-auto" />
-                          <span className="text-[10px] block mt-1">Belum ada foto</span>
-                        </div>
+                    <div className="flex flex-col items-center gap-2 shrink-0">
+                      <div className="relative w-24 h-32 rounded-xl bg-stone-200 overflow-hidden border-2 border-white shadow-sm flex items-center justify-center">
+                        {profile.foto_santri ? (
+                          <Image src={profile.foto_santri} alt={profile.nama_santri} fill className="object-cover" />
+                        ) : (
+                          <div className="text-center p-2 text-stone-400">
+                            <User className="w-10 h-10 mx-auto" />
+                            <span className="text-[10px] block mt-1">Belum ada foto</span>
+                          </div>
+                        )}
+                      </div>
+                      {!profile.is_locked && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewPhotoUrl(profile.foto_santri || "");
+                            setIsPhotoModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0F4C3A] hover:underline cursor-pointer"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-[#D97706]" />
+                          <span>{profile.foto_santri ? "Ganti Foto" : "Unggah Foto"}</span>
+                        </button>
                       )}
                     </div>
                     <div className="space-y-1">
@@ -1219,15 +1304,24 @@ export function SantriDashboard() {
               </div>
 
               {/* Form Upload Cepat */}
-              <div className="p-4 sm:p-5 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-3">
-                <div className="font-bold text-xs sm:text-sm text-[#0F4C3A]">Form Unggah Dokumen Baru</div>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
-                  <div className="sm:col-span-5">
-                    <label className="block font-semibold text-stone-700 mb-1">Pilih Jenis Berkas</label>
+              <div className="p-4 sm:p-5 rounded-2xl border border-emerald-200 bg-emerald-50/50 space-y-4">
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-[#0F4C3A]">Form Unggah Dokumen Langsung</div>
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    Pilih jenis berkas lalu unggah dokumen PDF atau foto dari HP / komputer Anda.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1 text-xs">Pilih Jenis Berkas</label>
                     <select
                       value={selectedUploadKode}
-                      onChange={(e) => setSelectedUploadKode(e.target.value)}
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white focus:outline-none focus:border-emerald-700"
+                      onChange={(e) => {
+                        setSelectedUploadKode(e.target.value);
+                        setUploadFileUrl("");
+                      }}
+                      className="w-full px-3 py-2.5 border border-stone-300 rounded-lg bg-white text-xs font-semibold focus:outline-none focus:border-emerald-700"
                     >
                       {MASTER_BERKAS_LIST.map((b) => (
                         <option key={b.kode} value={b.kode}>
@@ -1237,20 +1331,15 @@ export function SantriDashboard() {
                     </select>
                   </div>
 
-                  <div className="sm:col-span-5">
-                    <label className="block font-semibold text-stone-700 mb-1">
-                      Link URL / File Berkas
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Masukkan URL foto/PDF (Google Drive / Cloud / Upload)"
-                      value={uploadFileUrl}
-                      onChange={(e) => setUploadFileUrl(e.target.value)}
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg bg-white focus:outline-none focus:border-emerald-700"
-                    />
-                  </div>
+                  <SantriFileUploader
+                    endpoint={selectedUploadKode === "foto_santri" ? "imageUploader" : "documentUploader"}
+                    acceptTypes={selectedUploadKode === "foto_santri" ? "image" : "document"}
+                    value={uploadFileUrl}
+                    onChange={setUploadFileUrl}
+                    placeholder={`Pilih file untuk ${MASTER_BERKAS_LIST.find((m) => m.kode === selectedUploadKode)?.nama || "dokumen ini"}`}
+                  />
 
-                  <div className="sm:col-span-2 flex items-end">
+                  <div className="flex justify-end pt-1">
                     <button
                       type="button"
                       disabled={isUploadingBerkas || !uploadFileUrl.trim()}
@@ -1260,10 +1349,10 @@ export function SantriDashboard() {
                           handleUploadBerkas(targetItem.kode, targetItem.nama, uploadFileUrl);
                         }
                       }}
-                      className="w-full py-2 px-3 rounded-lg bg-[#0F4C3A] hover:bg-[#0c3f30] text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      className="py-2.5 px-5 rounded-xl bg-[#0F4C3A] hover:bg-[#0c3f30] text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{isUploadingBerkas ? "Menyimpan..." : "Simpan Berkas"}</span>
+                      <Upload className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{isUploadingBerkas ? "Menyimpan..." : "Simpan Berkas Ini"}</span>
                     </button>
                   </div>
                 </div>
@@ -1344,27 +1433,49 @@ export function SantriDashboard() {
                           </td>
                           <td className="py-3 px-4 text-center">
                             {uploaded ? (
-                              <div className="inline-flex items-center gap-2">
+                              <div className="inline-flex items-center gap-1.5 justify-center">
                                 <a
                                   href={uploaded.file_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-xs font-bold text-emerald-800 hover:underline inline-flex items-center gap-1"
+                                  className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 inline-flex items-center gap-1"
                                 >
                                   <ExternalLink className="w-3 h-3" />
-                                  <span>Lihat File</span>
+                                  <span>Lihat</span>
                                 </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRowUploadModal({
+                                      kode: master.kode,
+                                      nama: master.nama,
+                                      deskripsi: master.deskripsi,
+                                      wajib: master.wajib,
+                                      currentUrl: uploaded.file_url,
+                                    });
+                                    setRowUploadUrl(uploaded.file_url);
+                                  }}
+                                  className="text-[11px] font-semibold text-stone-600 hover:text-[#0F4C3A] bg-stone-100 hover:bg-stone-200 px-2 py-1 rounded-md transition cursor-pointer"
+                                >
+                                  Ganti
+                                </button>
                               </div>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setSelectedUploadKode(master.kode);
-                                  window.scrollTo({ top: 300, behavior: "smooth" });
+                                  setRowUploadModal({
+                                    kode: master.kode,
+                                    nama: master.nama,
+                                    deskripsi: master.deskripsi,
+                                    wajib: master.wajib,
+                                  });
+                                  setRowUploadUrl("");
                                 }}
-                                className="text-xs font-bold text-[#0F4C3A] hover:underline"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#0F4C3A] hover:bg-[#0c3f30] text-white text-[11px] font-bold shadow-2xs transition cursor-pointer"
                               >
-                                Upload Sekarang
+                                <Upload className="w-3 h-3 text-amber-300" />
+                                <span>Upload</span>
                               </button>
                             )}
                           </td>
@@ -1507,21 +1618,16 @@ export function SantriDashboard() {
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-semibold text-stone-700 mb-1">
-                        Link / URL Foto Bukti Transfer *
-                      </label>
-                      <input
-                        type="text"
-                        required
+                    <div className="sm:col-span-2">
+                      <SantriFileUploader
+                        label="Foto / Screenshot Bukti Transfer *"
+                        description="Unggah foto struk ATM, tangkapan layar m-Banking, atau nota setoran resmi (Maks 4MB)"
+                        endpoint="imageUploader"
+                        acceptTypes="image"
                         value={bayarFormBuktiUrl}
-                        onChange={(e) => setBayarFormBuktiUrl(e.target.value)}
-                        placeholder="Contoh: link foto transfer / URL Google Drive"
-                        className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 text-stone-900 bg-white"
+                        onChange={setBayarFormBuktiUrl}
+                        placeholder="Ketuk di sini untuk pilih foto bukti transfer dari galeri / kamera"
                       />
-                      <p className="text-[11px] text-stone-400 mt-1">
-                        Masukkan tautan foto/screenshot bukti transfer yang jelas.
-                      </p>
                     </div>
 
                     <div>
@@ -1815,16 +1921,14 @@ export function SantriDashboard() {
                   {/* Form Upload Bukti Daftar Ulang */}
                   <form onSubmit={handleSubmitDaftarUlang} className="space-y-4 text-xs sm:text-sm">
                     <div>
-                      <label className="block font-semibold text-stone-700 mb-1">
-                        Link / URL Foto Bukti Transfer Daftar Ulang *
-                      </label>
-                      <input
-                        type="text"
-                        required
+                      <SantriFileUploader
+                        label="Foto / File Bukti Transfer Daftar Ulang *"
+                        description="Unggah foto struk ATM, bukti m-Banking, atau nota pelunasan daftar ulang (Maks 8MB)"
+                        endpoint="documentUploader"
+                        acceptTypes="all"
                         value={daftarUlangBuktiUrl}
-                        onChange={(e) => setDaftarUlangBuktiUrl(e.target.value)}
-                        placeholder="Contoh: link file bukti transfer daftar ulang"
-                        className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:border-emerald-700 text-stone-900 bg-white"
+                        onChange={setDaftarUlangBuktiUrl}
+                        placeholder="Ketuk di sini untuk pilih bukti transfer dari galeri / kamera / file"
                       />
                     </div>
 
@@ -1937,6 +2041,150 @@ export function SantriDashboard() {
               >
                 <Printer className="w-4 h-4" />
                 <span>Cetak / Cetak PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL UNGGAH BERKAS LANGSUNG PER DOKUMEN                 */}
+      {/* ======================================================== */}
+      {rowUploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative space-y-4 animate-in fade-in zoom-in-95 duration-150 border border-stone-100">
+            <button
+              onClick={() => {
+                setRowUploadModal(null);
+                setRowUploadUrl("");
+              }}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition"
+              aria-label="Tutup"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#D97706]">
+                {rowUploadModal.wajib ? "Dokumen Wajib" : "Dokumen Pendukung"}
+              </span>
+              <h3 className="text-lg font-serif font-bold text-[#0F4C3A] mt-0.5">
+                Unggah {rowUploadModal.nama}
+              </h3>
+              {rowUploadModal.deskripsi && (
+                <p className="text-xs text-stone-500 mt-1">
+                  {rowUploadModal.deskripsi}
+                </p>
+              )}
+            </div>
+
+            <SantriFileUploader
+              endpoint={rowUploadModal.kode === "foto_santri" ? "imageUploader" : "documentUploader"}
+              acceptTypes={rowUploadModal.kode === "foto_santri" ? "image" : "document"}
+              value={rowUploadUrl}
+              onChange={setRowUploadUrl}
+              placeholder={`Pilih file ${rowUploadModal.nama} dari HP / Komputer`}
+            />
+
+            <div className="flex items-center gap-2 pt-2 border-t border-stone-100 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setRowUploadModal(null);
+                  setRowUploadUrl("");
+                }}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isSavingRowUpload || !rowUploadUrl.trim()}
+                onClick={handleSaveRowUpload}
+                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-[#0F4C3A] hover:bg-[#0c3f30] text-white flex items-center gap-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+              >
+                {isSavingRowUpload ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Simpan Berkas</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL UPLOAD PAS FOTO SANTRI                             */}
+      {/* ======================================================== */}
+      {isPhotoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-7 shadow-2xl relative space-y-4 animate-in fade-in zoom-in-95 duration-150 border border-stone-100">
+            <button
+              onClick={() => {
+                setIsPhotoModalOpen(false);
+                setNewPhotoUrl("");
+              }}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition"
+              aria-label="Tutup"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#D97706]">
+                Identitas Santri
+              </span>
+              <h3 className="text-lg font-serif font-bold text-[#0F4C3A] mt-0.5">
+                Unggah Pas Foto Calon Santri
+              </h3>
+              <p className="text-xs text-stone-500 mt-1">
+                Pilih foto resmi calon santri dari galeri HP atau komputer Anda (Maks 4MB).
+              </p>
+            </div>
+
+            <SantriFileUploader
+              endpoint="imageUploader"
+              acceptTypes="image"
+              value={newPhotoUrl}
+              onChange={setNewPhotoUrl}
+              placeholder="Ketuk untuk memilih foto dari galeri / kamera"
+            />
+
+            <div className="flex items-center gap-2 pt-2 border-t border-stone-100 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPhotoModalOpen(false);
+                  setNewPhotoUrl("");
+                }}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-600 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isSavingPhoto || !newPhotoUrl.trim()}
+                onClick={handleSavePhoto}
+                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-[#0F4C3A] hover:bg-[#0c3f30] text-white flex items-center gap-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+              >
+                {isSavingPhoto ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Pasang Pas Foto</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useSiteContent } from "./SiteContentProvider";
+import { SantriFileUploader } from "./SantriFileUploader";
 import { resolvePopupCtaUrl, type BeritaKabar } from "@/content/site-content";
 
 // Helper formatter mata uang rupiah
@@ -83,6 +84,7 @@ export function PublicSite() {
   const [formNamaWali, setFormNamaWali] = useState("");
   const [formNoWa, setFormNoWa] = useState("");
   const [formAlamat, setFormAlamat] = useState("");
+  const [formFotoSantri, setFormFotoSantri] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [registrationSuccessData, setRegistrationSuccessData] = useState<{
@@ -118,6 +120,7 @@ export function PublicSite() {
           nama_wali: formNamaWali,
           no_wa: formNoWa,
           alamat: formAlamat,
+          foto_santri: formFotoSantri.trim() || undefined,
         }),
       });
       const data = await response.json();
@@ -1312,6 +1315,7 @@ export function PublicSite() {
                       setFormNamaWali("");
                       setFormNoWa("");
                       setFormAlamat("");
+                      setFormFotoSantri("");
                     }}
                     className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-stone-800 transition cursor-pointer"
                   >
@@ -1406,6 +1410,19 @@ export function PublicSite() {
                       onChange={(e) => setFormAlamat(e.target.value)}
                       placeholder="Contoh: Jatihandap, Kec. Mandalajati, Bandung"
                       className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:border-emerald-700 text-stone-800 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <SantriFileUploader
+                      label="Pas Foto Calon Santri (Opsional)"
+                      description="Bisa diunggah sekarang atau nanti melalui Dashboard Calon Santri"
+                      endpoint="imageUploader"
+                      acceptTypes="image"
+                      value={formFotoSantri}
+                      onChange={setFormFotoSantri}
+                      placeholder="Pilih Pas Foto Calon Santri dari HP / Komputer"
+                      compact={true}
                     />
                   </div>
 
